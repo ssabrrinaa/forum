@@ -202,29 +202,23 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.Fatal("")
 	}
-	userValue := r.Context().Value("user_id")
+	userID := r.Context().Value("user_id")
 
-	if userValue == nil {
-		log.Fatal("User ID not found in context")
-	}
-
-	userID, ok := userValue.(uuid.UUID)
-	if !ok {
-		log.Fatal("Invalid user ID type in context")
-	}
 	postIDStr := r.URL.Path[len("/post/"):]
+
 	postID, err := uuid.FromString(postIDStr)
 	if err != nil {
 		log.Fatal("invalid postID")
 	}
-	fmt.Println(userID)
-	// validate post ID
 
-	post, err := ah.PostService.GetPost(postID)
+	fmt.Println(userID)
+
+	getPostResponce, err := ah.PostService.GetPost(postID)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(post)
+
+	fmt.Println(getPostResponce)
 
 	// http.Redirect(w, r, "/", http.StatusSeeOther)
 
@@ -232,5 +226,5 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err) // handle the errors properly
 	}
-	t.Execute(w, nil)
+	t.Execute(w, getPostResponce)
 }
