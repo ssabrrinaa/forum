@@ -3,6 +3,7 @@ package postservice
 import (
 	"fmt"
 	"forum/internal/models"
+	"forum/internal/repositories/authrepo"
 	"forum/internal/repositories/postrepo"
 	"forum/internal/schemas"
 
@@ -11,18 +12,20 @@ import (
 
 type PostService struct {
 	PostRepo postrepo.PostRepoI
+	AuthRepo authrepo.AuthRepoI
 }
 
-func NewPostService(postRepo postrepo.PostRepoI) *PostService {
+func NewPostService(postRepo postrepo.PostRepoI, authrepo authrepo.AuthRepoI) *PostService {
 	return &PostService{
 		PostRepo: postRepo,
+		AuthRepo: authrepo,
 	}
 }
 
 type PostServiceI interface {
 	CreatePost(user_id uuid.UUID, postCreate schemas.CreatePost) error
 	UpdatePost(user_id uuid.UUID, postCreate schemas.UpdatePost) error
-	GetPost(post_id uuid.UUID) (models.Post, error)
+	GetPost(post_id uuid.UUID) (*schemas.GetPostResponse, error)
 }
 
 func (as *PostService) CreatePost(user_id uuid.UUID, postCreate schemas.CreatePost) error {
@@ -61,11 +64,33 @@ func (as *PostService) UpdatePost(user_id uuid.UUID, postCreate schemas.UpdatePo
 	return nil
 }
 
-func (as *PostService) GetPost(post_id uuid.UUID) (models.Post, error) {
+func (as *PostService) GetPost(post_id uuid.UUID) (*schemas.GetPostResponse, error) {
+	// var getPostResponce schemas.GetPostResponse
 	post, err := as.PostRepo.GetPost(post_id)
 	if err != nil {
-		return post, err
+		return nil, err
 	}
-	fmt.Println(post)
-	return post, nil
+
+	user, err := as.AuthRepo.GetUserByUserID(post.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	categories, err := as.PostRepo.GetCategoriesByPostID(post_id)
+	if err != nil {
+		return nil, err
+	}
+
+	// get comments and likes
+
+	return &schemas.GetPostResponse{
+		Username:   user.Username,
+		PostID:     post.ID,
+		CreatedAt:  post.CreatedAt,
+		UpdetedAt:  post.UpdeatedAt,
+		PostTitle:  post.Title,
+		PostBody:   post.Body,
+		PostImage:  post.Image,
+		Categories: categories,
+	}, nil
 }

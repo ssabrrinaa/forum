@@ -25,6 +25,8 @@ type AuthRepoI interface {
 	GetUserByEmail(email string) (models.User, error)
 	GetUserByToken(token string) (models.User, error)
 	GetSession(token string) (models.Session, error)
+	GetUserByUserID(userID uuid.UUID) (models.User, error)
+
 	DeleteSession(ID uuid.UUID) error
 }
 
@@ -101,4 +103,17 @@ func (ar *AuthRepo) GetSession(token string) (models.Session, error) {
 	}
 
 	return session, nil
+}
+
+func (ar *AuthRepo) GetUserByUserID(userID uuid.UUID) (models.User, error) {
+	var user models.User
+	stmt := `
+		SELECT user_id, username, email FROM users 
+		WHERE token = ?;
+	`
+	if err := ar.db.QueryRow(stmt, userID).Scan(&user.ID, &user.Username, &user.Email); err != nil {
+		return models.User{}, err
+	}
+
+	return user, nil
 }

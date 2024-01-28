@@ -9,7 +9,7 @@ import (
 type Post struct {
 	ID         uuid.UUID
 	CreatedAt  time.Time
-	Updeted_At time.Time
+	UpdeatedAt time.Time
 	UserId     uuid.UUID
 	Title      string
 	Body       string

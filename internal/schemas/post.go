@@ -10,7 +10,7 @@ type CreatePost struct {
 	Title      string
 	Body       string
 	Image      string
-	Categories []ShowCategory
+	Categories []string
 }
 
 type UpdatePost struct {
@@ -19,8 +19,14 @@ type UpdatePost struct {
 }
 
 type GetPostResponse struct {
-	Username  string
-	PostID    uuid.UUID
-	CreatedAt time.Time
-	UpdetedAt time.Time
+	Username   string
+	PostID     uuid.UUID
+	CreatedAt  time.Time
+	UpdetedAt  time.Time
+	PostTitle  string
+	PostBody   string
+	PostImage  string
+	Categories []string
+	// Comments
+	// Likes
 }
