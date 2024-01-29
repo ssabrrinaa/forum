@@ -21,6 +21,7 @@ type PostRepoI interface {
 	CreatePost(post models.Post) error
 	UpdatePost(post models.Post) error
 	GetPost(postID uuid.UUID) (models.Post, error)
+	GetPostsAll() ([]models.Post, error)
 	GetCategoriesByPostID(postID uuid.UUID) ([]string, error)
 }
 
@@ -63,10 +64,45 @@ func (ar *PostRepo) GetPost(postID uuid.UUID) (models.Post, error) {
 	`
 	raw := ar.db.QueryRow(stmt, postID)
 
-	if err := raw.Scan(&post.ID, &post.ID, &post.CreatedAt, &post.UpdeatedAt, &post.UserId, &post.Title, &post.Body, &post.Image); err != nil {
+	if err := raw.Scan(&post.ID, &post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Image); err != nil {
 		return post, err
 	}
 	return post, nil
+}
+
+func (ar *PostRepo) GetPostsAll() ([]models.Post, error) {
+	var posts []models.Post
+	stmt := `
+		SELECT
+			post_id,
+			created_at,
+			updated_at,
+			user_id,
+			title,
+			body,
+			image
+		FROM posts;
+	`
+
+	rows, err := ar.db.Query(stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var post models.Post
+		if err := rows.Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Image); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
 
 func (ar *PostRepo) GetCategoriesByPostID(postID uuid.UUID) ([]string, error) {

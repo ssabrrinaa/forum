@@ -228,3 +228,27 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 	}
 	t.Execute(w, getPostResponce)
 }
+
+func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		log.Fatal("")
+	}
+	userID := r.Context().Value("user_id")
+
+	fmt.Println(userID)
+
+	getPostAllResponce, err := ah.PostService.GetPostsAll()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(getPostAllResponce)
+
+	// http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	t, err := template.ParseFiles("ui/templates/signin.html") // different html
+	if err != nil {
+		log.Fatal(err) // handle the errors properly
+	}
+	t.Execute(w, getPostAllResponce)
+}

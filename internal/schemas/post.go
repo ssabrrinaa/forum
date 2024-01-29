@@ -22,7 +22,7 @@ type GetPostResponse struct {
 	Username   string
 	PostID     uuid.UUID
 	CreatedAt  time.Time
-	UpdetedAt  time.Time
+	UpdatedAt  time.Time
 	PostTitle  string
 	PostBody   string
 	PostImage  string

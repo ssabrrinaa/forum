@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS comments (
     description TEXT NOT NULL,
     post_id UUID NOT NULL,
     user_id UUID NOT NULL
+    FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS categories (

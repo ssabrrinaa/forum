@@ -26,6 +26,7 @@ type PostServiceI interface {
 	CreatePost(user_id uuid.UUID, postCreate schemas.CreatePost) error
 	UpdatePost(user_id uuid.UUID, postCreate schemas.UpdatePost) error
 	GetPost(post_id uuid.UUID) (*schemas.GetPostResponse, error)
+	GetPostsAll() ([]*schemas.GetPostResponse, error)
 }
 
 func (as *PostService) CreatePost(user_id uuid.UUID, postCreate schemas.CreatePost) error {
@@ -87,10 +88,46 @@ func (as *PostService) GetPost(post_id uuid.UUID) (*schemas.GetPostResponse, err
 		Username:   user.Username,
 		PostID:     post.ID,
 		CreatedAt:  post.CreatedAt,
-		UpdetedAt:  post.UpdeatedAt,
+		UpdatedAt:  post.UpdatedAt,
 		PostTitle:  post.Title,
 		PostBody:   post.Body,
 		PostImage:  post.Image,
 		Categories: categories,
 	}, nil
+}
+
+func (as *PostService) GetPostsAll() ([]*schemas.GetPostResponse, error) {
+	var getPostsAllResponse []*schemas.GetPostResponse
+
+	posts, err := as.PostRepo.GetPostsAll()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, post := range posts {
+		categories, err := as.PostRepo.GetCategoriesByPostID(post.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		user, err := as.AuthRepo.GetUserByUserID(post.UserId)
+		if err != nil {
+			return nil, err
+		}
+
+		getPostsAllResponse = append(getPostsAllResponse, &schemas.GetPostResponse{
+			Username:   user.Username,
+			PostID:     post.ID,
+			CreatedAt:  post.CreatedAt,
+			UpdatedAt:  post.UpdatedAt,
+			PostTitle:  post.Title,
+			PostBody:   post.Body,
+			PostImage:  post.Image,
+			Categories: categories,
+		})
+	}
+
+	// You may want to get comments and likes here
+
+	return getPostsAllResponse, nil
 }
