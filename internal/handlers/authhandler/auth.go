@@ -2,23 +2,23 @@ package authhandler
 
 import (
 	"fmt"
+	"forum/internal/exceptions"
 	"forum/internal/schemas"
 	"html/template"
 	"log"
 	"net/http"
 )
 
-func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	// user := &models.User{}
-	fmt.Println("register")
+func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request, setErr func(r *http.Request, errObject interface{}) *http.Request) {
 	if r.Method == http.MethodGet {
-		fmt.Println("get method")
 		t, err := template.ParseFiles("ui/templates/register.html")
 		if err != nil {
-			log.Fatal(err) // handle the errors properly
+			interErr := exceptions.NewInternalServerError()
+			setErr(r, interErr)
+			http.Redirect(w, r, "/errors", http.StatusSeeOther)
+		} else {
+			t.Execute(w, nil)
 		}
-		t.Execute(w, nil)
-		return
 	} else if r.Method == http.MethodPost {
 		fmt.Println("post method")
 		if err := r.ParseForm(); err != nil {
