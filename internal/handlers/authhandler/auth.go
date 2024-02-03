@@ -16,32 +16,34 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request, setE
 			interErr := exceptions.NewInternalServerError()
 			setErr(r, interErr)
 			http.Redirect(w, r, "/errors", http.StatusSeeOther)
-		} else {
+			} else {
 			t.Execute(w, nil)
 		}
 	} else if r.Method == http.MethodPost {
 		fmt.Println("post method")
 		if err := r.ParseForm(); err != nil {
-			log.Fatal(err) // handle the errors properly
+			badReq := exceptions.NewBadRequestError()
+			setErr(r, badReq)
+			http.Redirect(w, r, "/errors", http.StatusSeeOther)
+		}else{
+			user := schemas.CreateUser{
+				UpdateUser: schemas.UpdateUser{
+					Username: r.FormValue("username"),
+					Email:    r.FormValue("email"),
+					Password: r.FormValue("password"),
+				},
+				PasswordConfirm: r.Form.Get("password_confirm"),
+			}
+			fmt.Println(user)
+			// как чекать если юзер сущетсвует?
+			err := ah.AuthService.CreateUser(user)
+			if err != nil {
+				setErr(r, err)
+				http.Redirect(w, r, "/errors", StatusSeeOther)
+			}else{
+				http.Redirect(w, r, "/signin", http.StatusSeeOther)
+			}
 		}
-
-		user := schemas.CreateUser{
-			UpdateUser: schemas.UpdateUser{
-				Username: r.FormValue("username"),
-				Email:    r.FormValue("email"),
-				Password: r.FormValue("password"),
-			},
-			PasswordConfirm: r.Form.Get("password_confirm"),
-		}
-		fmt.Println(user)
-		// как чекать если юзер сущетсвует?
-		err := ah.AuthService.CreateUser(user)
-		if err != nil {
-			log.Fatal(err) // handle the errors properly
-		}
-
-		http.Redirect(w, r, "/signin", http.StatusSeeOther)
-
 	} else {
 		// method not allowed
 	}
