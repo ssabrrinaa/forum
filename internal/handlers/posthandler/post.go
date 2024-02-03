@@ -3,6 +3,7 @@ package posthandler
 import (
 	"fmt"
 	"forum/internal/constants"
+	. "forum/internal/models"
 	"forum/internal/schemas"
 	"forum/pkg/validator"
 	"html/template"
@@ -16,23 +17,35 @@ import (
 )
 
 func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
-	userValue := r.Context().Value("user_id")
+	sessionValue := r.Context().Value("session")
 
-	if userValue == nil {
+	if sessionValue == nil {
 		log.Fatal("User ID not found in context")
 	}
 
-	userID, ok := userValue.(uuid.UUID)
+	var toOk Session
+	_ = toOk
+
+	session, ok := sessionValue.(Session)
 	if !ok {
 		log.Fatal("Invalid user ID type in context")
 	}
-	fmt.Println("___________________________________________________________", userID)
+
+	fmt.Println("___________________________________________________________", session.UserID)
 	if r.Method == http.MethodGet {
-		t, err := template.ParseFiles("ui/templates/postcreate.html") // different html
+		categories, err := ah.PostService.GetAllCategories()
 		if err != nil {
 			log.Fatal(err) // handle the errors properly
 		}
-		t.Execute(w, nil)
+		t, err := template.ParseFiles("ui/templates/create.html") // different html
+		if err != nil {
+			log.Fatal(err) // handle the errors properly
+		}
+		resp := &schemas.Data{
+			Session:    &session,
+			Categories: categories,
+		}
+		t.Execute(w, resp)
 		return
 	} else if r.Method == http.MethodPost {
 		if err := r.ParseMultipartForm(constants.MaxFileSize); err != nil {
@@ -93,7 +106,7 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err) // handle the errors properly
 		}
 
-		err = ah.PostService.CreatePost(userID, post)
+		err = ah.PostService.CreatePost(session.UserID, post)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -106,13 +119,13 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
-	userValue := r.Context().Value("user_id")
+	sessionValue := r.Context().Value("session")
 
-	if userValue == nil {
+	if sessionValue == nil {
 		log.Fatal("User ID not found in context")
 	}
 
-	userID, ok := userValue.(uuid.UUID)
+	session, ok := sessionValue.(Session)
 	if !ok {
 		log.Fatal("Invalid user ID type in context")
 	}
@@ -186,7 +199,7 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err) // handle the errors properly
 		}
 
-		err = ah.PostService.UpdatePost(userID, post)
+		err = ah.PostService.UpdatePost(session.UserID, post)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -202,7 +215,16 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.Fatal("")
 	}
-	userID := r.Context().Value("user_id")
+	sessionValue := r.Context().Value("session")
+
+	if sessionValue == nil {
+		log.Fatal("User ID not found in context")
+	}
+
+	_, ok := sessionValue.(Session)
+	if !ok {
+		log.Fatal("Invalid user ID type in context")
+	}
 
 	postIDStr := r.URL.Path[len("/post/"):]
 
@@ -210,8 +232,6 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal("invalid postID")
 	}
-
-	fmt.Println(userID)
 
 	getPostResponce, err := ah.PostService.GetPost(postID)
 	if err != nil {
@@ -233,11 +253,56 @@ func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.Fatal("")
 	}
-	userID := r.Context().Value("user_id")
+	sessionValue := r.Context().Value("session")
 
-	fmt.Println(userID)
+	if sessionValue == nil {
+		log.Fatal("User ID not found in context")
+	}
+
+	session, ok := sessionValue.(Session)
+	if !ok {
+		log.Fatal("Invalid user ID type in context")
+	}
 
 	getPostAllResponce, err := ah.PostService.GetPostsAll()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	categories, err := ah.PostService.GetAllCategories()
+	if err != nil {
+		log.Fatal(err) // handle the errors properly
+	}
+
+	fmt.Println(getPostAllResponce)
+	resp := &schemas.Data{
+		Session:    &session,
+		Posts:      getPostAllResponce,
+		Categories: categories,
+	}
+
+	// http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	t, err := template.ParseFiles("ui/templates/home.html") // different html
+	if err != nil {
+		log.Fatal(err) // handle the errors properly
+	}
+	t.Execute(w, resp)
+}
+
+func (ah *PostHandler) GetMyPosts(w http.ResponseWriter, r *http.Request) {
+	sessionValue := r.Context().Value("session")
+
+	if sessionValue == nil {
+		log.Fatal("User ID not found in context")
+	}
+
+	session, ok := sessionValue.(Session)
+	if !ok {
+		log.Fatal("Invalid user ID type in context")
+	}
+
+	getPostAllResponce, err := ah.PostService.GetMyPosts(session.UserID)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,0 +1,91 @@
+{{template "base" .}}
+            <section>
+                {{with .Post}}
+                <div class='snippet'>
+                    <div class='metadata'>
+                        <b class="left">{{.Title}}</b>
+                        <span class="right">#{{.PostId}}</span>
+                        <span class="right">{Categories:</span>
+                        {{range .Categories}}
+                        <span class="right">{{.}}</span>
+                        {{end}}
+                        <span class="right">}</span>
+                    </div>
+                        <pre>{{.Content}}</pre>
+                    <div class='metadata'>
+                        <span>
+                            <form method="POST" action="/post/vote/create#like">
+                                <input type="hidden" name="post_id" value="{{.PostId}}">
+                                <input type="hidden" name="vote" value=1>
+                                <button  id="like" type="submit"><img src="/static/img/like.png" style="width: 30px ;" alt="like button"> {{.Like}}  </button>
+                            </form>
+                        </span>
+                        <span>
+                            <form method="POST" action="/post/vote/create#dislike">
+                                <input type="hidden" name="post_id" value="{{.PostId}}">
+                                <input type="hidden" name="vote" value=-1>
+                                <button id="dislike" type="submit"><img src="/static/img/dislike.png" style="width: 30px ;" alt="dislike button"> {{.Dislike}}</button>
+                            </form>
+                        </span>
+                        <div class="time-post">
+                            posted {{.CreateAt.Format "02/01/2006 15:04"}} by<b>{{.UserName}}</b>
+                        </div>
+                    </div>
+                {{end}}
+                {{if .User}}    
+                    <div class="comments">
+                        <div class="comments_create">
+                            <form method="POST" action="/comment/create">
+                                <input type="hidden" name="post_id" value={{.Post.PostId}}>
+                            {{if .Form}}
+                                {{with .Form.Errors.content}}
+                                    {{range .}}
+                                    <label class="error">{{.}}</label>
+                                    {{end}}
+                                 {{end}}
+                                 <textarea name="content" placeholder="Enter a comment...">{{.Form.DataForErr.Content}}</textarea>
+                            {{else}}
+                                <textarea name="content" placeholder="Enter a comment..."></textarea>
+                            {{end}}
+                                <div class='metadata'>
+                                    <span>
+                                        <button type="submit" class="post_comment_create">Send</button>
+                                    </span>
+                                </div>
+                            </form>
+                        </div>
+                {{end}}       
+                {{range .Comments}}
+                <div class="comments_show">
+                            <div class='comment'>
+                                <b>{{.UserName}}</b>
+                            </div>
+                            <pre><code>{{.Content}}</code></pre>
+                            <div id="{{.Id}}" class='comment'>
+                                <span>
+                                    <form method="POST" action="/comment/vote/create#{{.Id}}">
+                                        <input type="hidden" name="post_id" value="{{.PostId}}">
+                                        <input type="hidden" name="comment_id" value="{{.Id}}">
+                                        <input type="hidden" name="vote" value=1>
+                                        <button type="submit"><img src="/static/img/like.png" style="width: 25px ;" alt="like button"> {{.Like}}</button>
+                                    </form>
+                                </span>
+                                <span>
+                                    <form method="POST" action="/comment/vote/create#{{.Id}}">
+                                        <input type="hidden" name="post_id" value="{{.PostId}}">
+                                        <input type="hidden" name="comment_id" value="{{.Id}}">
+                                        <input type="hidden" name="vote" value=-1>
+                                        <button type="submit"><img src="/static/img/dislike.png" style="width: 25px ;" alt="dislike button"> {{.Dislike}}</button>
+                                    </form>
+                                </span>
+                                
+                                <div class="time-post">
+                                    {{.CreateAt.Format "02/01/2006 15:04"}}
+                                </div>
+                            </div>
+                        </div>
+                {{end}}
+                    </div>
+                </div>
+            </section>
+            {{template "footer" .}}

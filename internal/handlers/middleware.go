@@ -13,8 +13,6 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 			http.Redirect(w, r, "/signin", http.StatusSeeOther)
 			// log.Fatal(err)
 		}
-		fmt.Println(cookie.Name)
-		fmt.Println("Value", cookie.Value)
 
 		session, err := h.AuthHandler.AuthService.GetSession(cookie.Value)
 		if err != nil {
@@ -22,9 +20,9 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		fmt.Println(session.UserID)
+		fmt.Println("Sessoin is contex is set")
 
-		ctx := context.WithValue(r.Context(), "user_id", session.UserID)
+		ctx := context.WithValue(r.Context(), "session", session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

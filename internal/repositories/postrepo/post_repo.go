@@ -22,7 +22,9 @@ type PostRepoI interface {
 	UpdatePost(post models.Post) error
 	GetPost(postID uuid.UUID) (models.Post, error)
 	GetPostsAll() ([]models.Post, error)
+	GetMyPosts(userID uuid.UUID) ([]models.Post, error)
 	GetCategoriesByPostID(postID uuid.UUID) ([]string, error)
+	GetAllCategories() ([]*models.Category, error)
 }
 
 func (ar *PostRepo) CreatePost(post models.Post) error {
@@ -134,4 +136,69 @@ func (ar *PostRepo) GetCategoriesByPostID(postID uuid.UUID) ([]string, error) {
 	}
 
 	return categories, nil
+}
+
+func (ar *PostRepo) GetAllCategories() ([]*models.Category, error) {
+	var categories []*models.Category
+	stmt := `
+		SELECT name
+		FROM categories 
+	`
+
+	rows, err := ar.db.Query(stmt)
+	if err != nil {
+		return categories, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var categoryName string
+		if err := rows.Scan(&categoryName); err != nil {
+			return categories, err
+		}
+		category := &models.Category{Name: categoryName}
+		categories = append(categories, category)
+	}
+
+	if err := rows.Err(); err != nil {
+		return categories, err
+	}
+
+	return categories, nil
+}
+
+func (ar *PostRepo) GetMyPosts(userID uuid.UUID) ([]models.Post, error) {
+	var posts []models.Post
+	stmt := `
+		SELECT
+			post_id,
+			created_at,
+			updated_at,
+			user_id,
+			title,
+			body,
+			image
+		FROM posts
+		WHERE user_id = ?;
+	`
+
+	rows, err := ar.db.Query(stmt, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var post models.Post
+		if err := rows.Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Image); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }

@@ -10,14 +10,19 @@ import (
 
 func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	// user := &models.User{}
-	fmt.Println("register")
+	fmt.Println("\nregister")
+
 	if r.Method == http.MethodGet {
 		fmt.Println("get method")
 		t, err := template.ParseFiles("ui/templates/register.html")
 		if err != nil {
-			log.Fatal(err) // handle the errors properly
+			log.Fatal(err)
 		}
-		t.Execute(w, nil)
+
+		err = t.Execute(w, nil)
+		if err != nil {
+			fmt.Println(err)
+		}
 		return
 	} else if r.Method == http.MethodPost {
 		fmt.Println("post method")
@@ -64,6 +69,7 @@ func (ah *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 			Email:    r.Form.Get("email"),
 			Password: r.Form.Get("password"),
 		}
+		fmt.Println(user)
 		session, err := ah.AuthService.CreateSession(user)
 		if err != nil {
 			log.Fatal(err) // handle the errors properly
@@ -78,6 +84,7 @@ func (ah *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 
 		http.SetCookie(w, cookie)
+		fmt.Println("coockie is set")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 
 	} else {

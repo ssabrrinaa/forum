@@ -1,63 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=\, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <title>Document</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Forum</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="shortcut icon" href="/static/img/icons8.png" type="image/x-icon">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap');
+    </style>
 </head>
-<body>
-    <section class="vh-100" style="background-color: #eee;">
-        <div class="container h-100">
-          <div class="row d-flex justify-content-center align-items-center h-100">
-            <div class="col-lg-12 col-xl-11">
-              <div class="card text-black" style="border-radius: 25px;">
-                <div class="card-body p-md-5">
-                  <div class="row justify-content-center">
-                    <div class="col-md-10 col-lg-6 col-xl-5 order-2 order-lg-1">
-      
-                      <p class="text-center h1 fw-bold mb-5 mx-1 mx-md-4 mt-4">Sign in</p>
-      
-                      <form class="mx-1 mx-md-4" action="/signin" method="POST">
-        
-                          <div class="d-flex flex-row align-items-center mb-4">
-                            <i class="fas fa-envelope fa-lg me-3 fa-fw"></i>
-                            <div class="form-outline flex-fill mb-0">
-                              <input type="email" id="email" class="form-control" placeholder="Email" name="email" required/>
-                              <label class="form-label" for="form3Example3c">Your Email</label>
-                            </div>
-                          </div>
-        
-                          <div class="d-flex flex-row align-items-center mb-4">
-                            <i class="fas fa-lock fa-lg me-3 fa-fw"></i>
-                            <div class="form-outline flex-fill mb-0">
-                              <input type="password" id="password" class="form-control" placeholder="Password" name="password" required/>
-                              <label class="form-label" for="form3Example4c">Password</label>
-                            </div>
-                          </div>
-        
-                          <div class="d-flex justify-content-center mx-4 mb-3 mb-lg-4">
-                            <button type="submit" class="btn btn-primary btn-lg">Register</button>
-                          </div>
 
-                      </form>
-      
-                    </div>
-                    <div class="col-md-10 col-lg-6 col-xl-7 d-flex align-items-center order-1 order-lg-2">
-      
-                      <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-registration/draw1.webp"
-                        class="img-fluid" alt="Sample image">
-      
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+<body>
+    <header>
+        <h1><a href='/'>Forum</a></h1>
+    </header>
+    <nav>
+        <div>
+            <a class="navbutton" href="/">Home</a>
+            {{if .User}}
+            <a class="navbutton" href="/post/create">Create Post</a>
+            <a class="navbutton" href="/likeposts">Liked Posts</a>
+            {{end}}
         </div>
-      </section>
-      <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-      <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+        <div>
+            {{if .User}}
+            <a class="navbutton" href="/myposts">My Posts</a>
+            <form action="/logout" method="POST">
+                <button type="submit">Signout</button>
+            </form>
+            {{else}}
+            <a class="navbutton" href="/register">Signup</a>
+            <a class="navbutton" href="/signin">Signin</a>
+            {{end}}
+        </div>
+    </nav>
+
+    <section>
+        <!-- {{if .Form}}
+        <form action="/auth/signin" method="POST" novalidate>
+            <div>
+                {{with .Form.Errors.email}}
+                {{range .}}
+                <label class="error">{{.}}</label>
+                {{end}}
+                {{end}}
+                <label>Email:</label>
+                <input type="email" name="email" value="{{.Form.DataForErr.Email}}">
+            </div>
+            <div>
+                {{with .Form.Errors.password}}
+                {{range .}}
+                <label class="error">{{.}}</label>
+                {{end}}
+                {{end}}
+                <label>Password:</label>
+                <input type="password" name="password" value="{{.Form.DataForErr.Password}}" />
+            </div>
+            {{else}} -->
+            <form action="/signin" method="POST" novalidate>
+                <div>
+                    <label>Email:</label>
+                    <input type="email" name="email">
+                </div>
+                <div>
+                    <label>Password:</label>
+                    <input type="password" name="password" />
+                </div>
+                <!-- {{end}} -->
+                <div>
+                    <input type="submit" value="Signin" />
+                </div>
+            </form>
+    </section>
+
+    <footer>
+        <p>Created by <a href="https://01.alem.school/git/buzukbuzuk" target="_blank">buzukbuzuk</a> and <a
+                href="https://github.com/GoArtyom" target="_blank">GoArtyom</a> in 2023</p>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
 </body>
+
 </html>

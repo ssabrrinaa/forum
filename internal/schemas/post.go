@@ -1,6 +1,7 @@
 package schemas
 
 import (
+	"forum/internal/models"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -30,3 +31,15 @@ type GetPostResponse struct {
 	// Comments
 	// Likes
 }
+
+type Data struct {
+	Session *models.Session
+	Post    *GetPostResponse
+	Posts   []*GetPostResponse
+	Form    *Form
+	// Comments   []*schemas.Comment
+	Categories []*Category
+	// Error Error
+}
+
+type Form struct{}
