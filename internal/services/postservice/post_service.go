@@ -1,7 +1,7 @@
 package postservice
 
 import (
-	"fmt"
+	"forum/internal/exceptions"
 	"forum/internal/models"
 	"forum/internal/repositories/postrepo"
 	"forum/internal/schemas"
@@ -26,8 +26,6 @@ type PostServiceI interface {
 }
 
 func (as *PostService) CreatePost(user_id uuid.UUID, postCreate schemas.CreatePost) error {
-	fmt.Println("++++++++++++++++++")
-	fmt.Println(postCreate.Body)
 
 	post := models.Post{
 		ID:     uuid.Must(uuid.NewV4()),
@@ -36,11 +34,9 @@ func (as *PostService) CreatePost(user_id uuid.UUID, postCreate schemas.CreatePo
 		Body:   postCreate.Body,
 		Image:  postCreate.Image,
 	}
-	fmt.Println(post)
 	err := as.PostRepo.CreatePost(post)
 	if err != nil {
-		fmt.Println("PostRepo", err)
-		return err
+		return exceptions.NewInternalServerError()
 	}
 	return nil
 }
@@ -56,7 +52,7 @@ func (as *PostService) UpdatePost(user_id uuid.UUID, postCreate schemas.UpdatePo
 
 	err := as.PostRepo.CreatePost(post)
 	if err != nil {
-		return err
+		return exceptions.NewInternalServerError()
 	}
 	return nil
 }
@@ -64,8 +60,7 @@ func (as *PostService) UpdatePost(user_id uuid.UUID, postCreate schemas.UpdatePo
 func (as *PostService) GetPost(post_id uuid.UUID) (models.Post, error) {
 	post, err := as.PostRepo.GetPost(post_id)
 	if err != nil {
-		return post, err
+		return post, exceptions.NewInternalServerError()
 	}
-	fmt.Println(post)
 	return post, nil
 }

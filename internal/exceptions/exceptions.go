@@ -39,10 +39,6 @@ type ConnectionError struct {
 	ClientSideError
 }
 
-type SessionExpiredError struct {
-	ClientSideError
-}
-
 type StatusConflictError struct {
 	ClientSideError
 }
@@ -60,48 +56,48 @@ type InternalServerError struct {
 }
 
 func (e BaseError) Error() string {
-	return fmt.Sprintf("Status Code: %v, Message: %v", e.StatusCode, e.Message)
+	return fmt.Sprintf("%v %v", e.StatusCode, e.Message)
 }
 
-func NewValidationError(msg string) ValidationError {
+func NewValidationError() ValidationError {
 	return ValidationError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
-				StatusCode: HTTP_422,
-				Message:    fmt.Sprintf("Validation Error: %v", msg),
+				StatusCode: 422,
+				Message:    fmt.Sprintf("%v", HTTPStatusCodes[422]),
 			},
 		},
 	}
 }
 
-func NewAuthenticationError(msg string) AuthenticationError {
+func NewAuthenticationError() AuthenticationError {
 	return AuthenticationError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
-				StatusCode: HTTP_401,
-				Message:    fmt.Sprintf("Authentication Error: %v", msg),
+				StatusCode: 401,
+				Message:    fmt.Sprintf("%v", HTTPStatusCodes[401]),
 			},
 		},
 	}
 }
 
-func NewResourceNotFoundError(msg string) ResourceNotFoundError {
+func NewResourceNotFoundError() ResourceNotFoundError {
 	return ResourceNotFoundError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
-				StatusCode: HTTP_404,
-				Message:    fmt.Sprintf("Not Found Error: %v", msg),
+				StatusCode: 404,
+				Message:    fmt.Sprintf("%v", HTTPStatusCodes[404]),
 			},
 		},
 	}
 }
 
-func NewBadRequestError(msg string) BadRequestError {
+func NewBadRequestError() BadRequestError {
 	return BadRequestError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
-				StatusCode: HTTP_400,
-				Message:    fmt.Sprintf("Bad Request Error: %v", msg),
+				StatusCode: 400,
+				Message:    fmt.Sprintf("%v", HTTPStatusCodes[400]),
 			},
 		},
 	}
@@ -111,41 +107,30 @@ func NewStatusMethodNotAllowed() StatusMethodNotAllowed {
 	return StatusMethodNotAllowed{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
-				StatusCode: HTTP_405,
-				Message:    fmt.Sprintf("Method Not Allowed error"),
+				StatusCode: 405,
+				Message:    fmt.Sprintf("%v", HTTPStatusCodes[405]),
 			},
 		},
 	}
 }
 
-func NewSessionExpiredError(msg string) SessionExpiredError {
-	return SessionExpiredError{
-		ClientSideError: ClientSideError{
-			BaseError: BaseError{
-				StatusCode: HTTP_401,
-				Message:    fmt.Sprintf("Session Expired Error: %v", msg),
-			},
-		},
-	}
-}
-
-func NewStatusConflictError(msg string) StatusConflictError {
+func NewStatusConflicError() StatusConflictError {
 	return StatusConflictError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
-				StatusCode: HTTP_409,
-				Message:    fmt.Sprintf("Status Conflict Error: %v", msg),
+				StatusCode: 409,
+				Message:    fmt.Sprintf("%v", HTTPStatusCodes[409]),
 			},
 		},
 	}
 }
 
-func NewForbiddenError(msg string) ForbiddenError {
+func NewForbiddenError() ForbiddenError {
 	return ForbiddenError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
-				StatusCode: HTTP_403,
-				Message:    fmt.Sprintf("Forbidden Error: %v", msg),
+				StatusCode: 403,
+				Message:    fmt.Sprintf("%v", HTTPStatusCodes[403]),
 			},
 		},
 	}
@@ -155,8 +140,8 @@ func NewInternalServerError() InternalServerError {
 	return InternalServerError{
 		ServerSideError: ServerSideError{
 			BaseError: BaseError{
-				StatusCode: HTTP_500,
-				Message:    fmt.Sprintf("Internal Server Error"),
+				StatusCode: 500,
+				Message:    fmt.Sprintf("%v", HTTPStatusCodes[500]),
 			},
 		},
 	}

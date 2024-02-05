@@ -1,36 +1,36 @@
 package exceptions
 
-const (
-	HTTP_400 = 400
-	HTTP_401 = 401
-	HTTP_402 = 402
-	HTTP_403 = 403
-	HTTP_404 = 404
-	HTTP_405 = 405
-	HTTP_406 = 406
-	HTTP_407 = 407
-	HTTP_408 = 408
-	HTTP_409 = 409
-	HTTP_410 = 410
-	HTTP_411 = 411
-	HTTP_412 = 412
-	HTTP_413 = 413
-	HTTP_414 = 414
-	HTTP_415 = 415
-	HTTP_416 = 416
-	HTTP_417 = 417
-	HTTP_418 = 418
-	HTTP_421 = 421
-	HTTP_422 = 422
-	HTTP_423 = 423
-	HTTP_424 = 424
-	HTTP_425 = 425
-	HTTP_426 = 426
-	HTTP_427 = 427
-	HTTP_428 = 428
-	HTTP_429 = 429
-	HTTP_430 = 430
-	HTTP_431 = 431
-	HTTP_451 = 451
-	HTTP_500 = 500
-)
+var HTTPStatusCodes = map[int]string{
+	400: "Bad Request",
+	401: "Unauthorized",
+	402: "Payment Required",
+	403: "Forbidden",
+	404: "Not Found",
+	405: "Method Not Allowed",
+	406: "Not Acceptable",
+	407: "Proxy Authentication Required",
+	408: "Request Timeout",
+	409: "Conflict",
+	410: "Gone",
+	411: "Length Required",
+	412: "Precondition Failed",
+	413: "Payload Too Large",
+	414: "URI Too Long",
+	415: "Unsupported Media Type",
+	416: "Range Not Satisfiable",
+	417: "Expectation Failed",
+	418: "I'm a teapot",
+	421: "Misdirected Request",
+	422: "Unprocessable Entity",
+	423: "Locked",
+	424: "Failed Dependency",
+	425: "Too Early",
+	426: "Upgrade Required",
+	427: "Unassigned",
+	428: "Precondition Required",
+	429: "Too Many Requests",
+	430: "Unassigned",
+	431: "Request Header Fields Too Large",
+	451: "Unavailable For Legal Reasons",
+	500: "Internal Server Error",
+}

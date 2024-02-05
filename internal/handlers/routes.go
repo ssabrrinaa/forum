@@ -10,10 +10,9 @@ func (h *Handler) Routes() *http.ServeMux {
 	logoutHandler := http.HandlerFunc(h.AuthHandler.LogOut)
 	postCreateHandler := http.HandlerFunc(h.PostHandler.PostCreate)
 	postUpdateHandler := http.HandlerFunc(h.PostHandler.PostUpdate)
-
-	mux.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		h.AuthHandler.RegisterUser(w, r, SetErrorObject)
-	})
+	errorsHandler := http.HandlerFunc(errorHandler)
+	mux.HandleFunc("/register", h.AuthHandler.RegisterUser)
+	mux.Handle("/errors", h.ErrorMiddleware(errorsHandler))
 	mux.HandleFunc("/signin", h.AuthHandler.SignIn)
 	mux.Handle("/logout", h.SessionMiddleware(logoutHandler))
 

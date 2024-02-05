@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gofrs/uuid"
 )
@@ -24,19 +25,26 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := userValue.(uuid.UUID)
 	if !ok {
-		log.Fatal("Invalid user ID type in context")
-	}
-	fmt.Println("___________________________________________________________", userID)
-	if r.Method == http.MethodGet {
-		t, err := template.ParseFiles("ui/templates/postcreate.html") // different html
-		if err != nil {
-			log.Fatal(err) // handle the errors properly
-		}
-		t.Execute(w, nil)
+		w.Header().Set("Error", "400")
+		http.Redirect(w, r, "/errors", http.StatusSeeOther)
 		return
+	}
+	if r.Method == http.MethodGet {
+		t, err := template.ParseFiles("ui/templates/postcreate.html")
+		if err != nil {
+			w.Header().Set("Error", "500")
+			http.Redirect(w, r, "/errors", http.StatusSeeOther)
+		} else {
+			err := t.Execute(w, nil)
+			if err != nil {
+				return
+			}
+		}
 	} else if r.Method == http.MethodPost {
 		if err := r.ParseMultipartForm(constants.MaxFileSize); err != nil {
-			log.Fatal(err) // handle the errors properly
+			w.Header().Set("Error", "400")
+			http.Redirect(w, r, "/errors", http.StatusSeeOther)
+			return
 		}
 		// file, header, err := r.FormFile("file")
 		// fmt.Println(err)
@@ -90,12 +98,16 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 
 		err := validator.ValidateCreatePostInput(post)
 		if err != nil {
-			log.Fatal(err) // handle the errors properly
+			w.Header().Set("Error", strings.Split(err.Error(), " ")[0])
+			http.Redirect(w, r, "/errors", http.StatusSeeOther)
+			return
 		}
 
 		err = ah.PostService.CreatePost(userID, post)
 		if err != nil {
-			log.Fatal(err)
+			w.Header().Set("Error", strings.Split(err.Error(), " ")[0])
+			http.Redirect(w, r, "/errors", http.StatusSeeOther)
+			return
 		}
 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -114,18 +126,26 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := userValue.(uuid.UUID)
 	if !ok {
-		log.Fatal("Invalid user ID type in context")
+		w.Header().Set("Error", "400")
+		http.Redirect(w, r, "/errors", http.StatusSeeOther)
+		return
 	}
 	if r.Method == http.MethodGet {
-		t, err := template.ParseFiles("ui/templates/signin.html") // different html
+		t, err := template.ParseFiles("ui/templates/register.html")
 		if err != nil {
-			log.Fatal(err) // handle the errors properly
+			w.Header().Set("Error", "500")
+			http.Redirect(w, r, "/errors", http.StatusSeeOther)
+		} else {
+			err := t.Execute(w, nil)
+			if err != nil {
+				return
+			}
 		}
-		t.Execute(w, nil)
-		return
 	} else if r.Method == http.MethodPost {
 		if err := r.ParseMultipartForm(constants.MaxFileSize); err != nil {
-			log.Fatal(err) // handle the errors properly
+			w.Header().Set("Error", "400")
+			http.Redirect(w, r, "/errors", http.StatusSeeOther)
+			return
 		}
 		file, header, err := r.FormFile("image")
 		if err != nil {
