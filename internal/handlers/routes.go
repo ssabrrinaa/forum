@@ -28,7 +28,9 @@ func (h *Handler) Routes() *http.ServeMux {
 	mux.Handle("/post/create", h.SessionMiddleware(postCreateHandler)) // add PostHandler
 	mux.Handle("/post/update", h.SessionMiddleware(postUpdateHandler)) //
 	mux.Handle("/", h.ErrorMiddleware(errorsHandler))
-	mux.Handle("/", h.SessionMiddleware(postGetAllHandler))
+
+	_ = postGetAllHandler
+	//mux.Handle("/", h.SessionMiddleware(postGetAllHandler))
 
 	mux.Handle("/post/create", h.SessionMiddleware(postCreateHandler))
 	mux.Handle("/post/update", h.SessionMiddleware(postUpdateHandler))
