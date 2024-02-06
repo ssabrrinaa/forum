@@ -1,52 +1,44 @@
 package authhandler
 
 import (
+	"context"
 	"fmt"
 	"forum/internal/schemas"
 	"html/template"
-	"log"
 	"net/http"
+	"strings"
 )
 
 func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	// user := &models.User{}
-	fmt.Println("\nregister")
-
 	if r.Method == http.MethodGet {
-		fmt.Println("get method")
 		t, err := template.ParseFiles("ui/templates/register.html")
 		if err != nil {
-			log.Fatal(err)
+			http.Redirect(w, r, "/errors?error=500", http.StatusSeeOther)
+		} else {
+			err := t.Execute(w, nil)
+			if err != nil {
+				return
+			}
 		}
-
-		err = t.Execute(w, nil)
-		if err != nil {
-			fmt.Println(err)
-		}
-		return
 	} else if r.Method == http.MethodPost {
-		fmt.Println("post method")
 		if err := r.ParseForm(); err != nil {
-			log.Fatal(err) // handle the errors properly
+			http.Redirect(w, r, "/errors/error=400", http.StatusSeeOther)
+		} else {
+			user := schemas.CreateUser{
+				UpdateUser: schemas.UpdateUser{
+					Username: r.FormValue("username"),
+					Email:    r.FormValue("email"),
+					Password: r.FormValue("password"),
+				},
+				PasswordConfirm: r.Form.Get("password_confirm"),
+			}
+			err := ah.AuthService.CreateUser(user)
+			if err != nil {
+				http.Redirect(w, r, "/errors?error="+strings.Split(err.Error(), " ")[0], http.StatusSeeOther)
+			} else {
+				http.Redirect(w, r, "/signin", http.StatusSeeOther)
+			}
 		}
-
-		user := schemas.CreateUser{
-			UpdateUser: schemas.UpdateUser{
-				Username: r.FormValue("username"),
-				Email:    r.FormValue("email"),
-				Password: r.FormValue("password"),
-			},
-			PasswordConfirm: r.Form.Get("password_confirm"),
-		}
-		fmt.Println(user)
-		// как чекать если юзер сущетсвует?
-		err := ah.AuthService.CreateUser(user)
-		if err != nil {
-			log.Fatal(err) // handle the errors properly
-		}
-
-		http.Redirect(w, r, "/signin", http.StatusSeeOther)
-
 	} else {
 		// method not allowed
 	}
@@ -56,36 +48,40 @@ func (ah *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		t, err := template.ParseFiles("ui/templates/signin.html")
 		if err != nil {
-			log.Fatal(err) // handle the errors properly
+			http.Redirect(w, r, "/errors?error=500", http.StatusSeeOther)
+		} else {
+			err := t.Execute(w, nil)
+			if err != nil {
+				return
+			}
 		}
-		t.Execute(w, nil)
-		return
 
 	} else if r.Method == http.MethodPost {
 		if err := r.ParseForm(); err != nil {
-			log.Fatal(err) // handle the errors properly
-		}
-		user := schemas.AuthUser{
-			Email:    r.Form.Get("email"),
-			Password: r.Form.Get("password"),
-		}
-		fmt.Println(user)
-		session, err := ah.AuthService.CreateSession(user)
-		if err != nil {
-			log.Fatal(err) // handle the errors properly
-		}
-		cookie := &http.Cookie{
-			Name:     "session",
-			Value:    session.Token,
-			Path:     "/",
-			Expires:  session.ExpireTime,
-			HttpOnly: true,
-			MaxAge:   7200,
-		}
+			http.Redirect(w, r, "/errors?error=400", http.StatusSeeOther)
+		} else {
+			user := schemas.AuthUser{
+				Email:    r.Form.Get("email"),
+				Password: r.Form.Get("password"),
+			}
+			session, err := ah.AuthService.CreateSession(user)
+			if err != nil {
+				r = r.WithContext(context.WithValue(r.Context(), "redirected", true))
+				http.Redirect(w, r, "/errors?error="+strings.Split(err.Error(), " ")[0], http.StatusSeeOther)
+			} else {
+				cookie := &http.Cookie{
+					Name:     "session",
+					Value:    session.Token,
+					Path:     "/",
+					Expires:  session.ExpireTime,
+					HttpOnly: true,
+					MaxAge:   7200,
+				}
 
-		http.SetCookie(w, cookie)
-		fmt.Println("coockie is set")
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+				http.SetCookie(w, cookie)
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+			}
+		}
 
 	} else {
 		// method not allowed
@@ -94,28 +90,20 @@ func (ah *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ah *AuthHandler) LogOut(w http.ResponseWriter, r *http.Request) {
-	// if r.Method != http.MethodPost {
-	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	// 	return
-	// }
-
-	// Get the session cookie
 	cookie, _ := r.Cookie("session")
 
-	// Delete the session from the server side (or invalidate the session)
 	err := ah.AuthService.DeleteSession(cookie.Value)
 	if err != nil {
-		log.Fatal(err) // Handle the error properly, e.g., return an error response
+		http.Redirect(w, r, "/errors?error="+strings.Split(err.Error(), " ")[0], http.StatusSeeOther)
+	} else {
+		expiredCookie := &http.Cookie{
+			Name:     "session",
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			MaxAge:   -1,
+		}
+		http.SetCookie(w, expiredCookie)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	expiredCookie := &http.Cookie{
-		Name:     "session",
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		MaxAge:   -1,
-	}
-
-	http.SetCookie(w, expiredCookie)
-
-	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

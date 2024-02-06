@@ -14,6 +14,9 @@ func (h *Handler) Routes() *http.ServeMux {
 	logoutHandler := http.HandlerFunc(h.AuthHandler.LogOut)
 	postCreateHandler := http.HandlerFunc(h.PostHandler.PostCreate)
 	postUpdateHandler := http.HandlerFunc(h.PostHandler.PostUpdate)
+	errorsHandler := http.HandlerFunc(errorHandler)
+	mux.HandleFunc("/register", h.AuthHandler.RegisterUser)
+	mux.HandleFunc("/signin", h.AuthHandler.SignIn)
 	postGetHandler := http.HandlerFunc(h.PostHandler.PostGet)
 	postGetAllHandler := http.HandlerFunc(h.PostHandler.PostGetAll)
 	postGetMypostsHandler := http.HandlerFunc(h.PostHandler.GetMyPosts)
@@ -22,6 +25,9 @@ func (h *Handler) Routes() *http.ServeMux {
 	mux.HandleFunc("/signin", h.AuthHandler.SignIn)         // +
 	mux.Handle("/logout", h.SessionMiddleware(logoutHandler))
 
+	mux.Handle("/post/create", h.SessionMiddleware(postCreateHandler)) // add PostHandler
+	mux.Handle("/post/update", h.SessionMiddleware(postUpdateHandler)) //
+	mux.Handle("/", h.ErrorMiddleware(errorsHandler))
 	mux.Handle("/", h.SessionMiddleware(postGetAllHandler))
 
 	mux.Handle("/post/create", h.SessionMiddleware(postCreateHandler))

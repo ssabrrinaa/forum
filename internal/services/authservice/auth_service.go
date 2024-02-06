@@ -2,12 +2,12 @@ package authservice
 
 import (
 	"errors"
+	"forum/internal/exceptions"
 	"forum/internal/models"
 	"forum/internal/repositories/authrepo"
 	"forum/internal/schemas"
 	"forum/pkg/hashbcrypt"
 	"forum/pkg/validator"
-	"log"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -35,31 +35,27 @@ type AuthServiceI interface {
 
 func (as *AuthService) CreateUser(user schemas.CreateUser) error {
 	if err := validator.ValidateRegisterInput(user); err != nil {
-		return err
+		return exceptions.NewValidationError()
 	}
 
 	hashedPassword, err := hashbcrypt.GenerateHashedPassword(user.Password)
 	if err != nil {
-		return err
+		return exceptions.NewInternalServerError()
 	}
 	// как чекать если email уже сущетсвует в БД
 
 	userFromDb, _ := as.AuthRepo.GetUserByEmail(user.Email)
 	if userFromDb.Email == user.Email {
-		return errors.New("User already exists") // handle the error properly
+		return exceptions.NewStatusConflicError()
 	}
-	user_id, err := uuid.NewV4()
-	if err != nil {
-		log.Fatal("error while generating uuid")
-	}
-	user_model := models.User{
-		ID:             user_id,
+	userModel := models.User{
+		ID:             uuid.Must(uuid.NewV4()),
 		Username:       user.Username,
 		Email:          user.Email,
 		HashedPassword: hashedPassword,
 	}
-	if err := as.AuthRepo.CreateUser(user_model); err != nil {
-		return err // handle the error properly
+	if err := as.AuthRepo.CreateUser(userModel); err != nil {
+		return exceptions.NewInternalServerError()
 	}
 
 	return nil
@@ -68,39 +64,33 @@ func (as *AuthService) CreateUser(user schemas.CreateUser) error {
 func (as *AuthService) CreateSession(user schemas.AuthUser) (models.Session, error) {
 	session := models.Session{}
 	if err := validator.ValidateSignInInput(user); err != nil {
-		return session, err
+		return session, exceptions.NewValidationError()
 	}
 
 	userDB, err := as.AuthRepo.GetUserByEmail(user.Email)
 	if err != nil {
-		return session, err
+		return session, exceptions.NewInternalServerError()
 	}
 
 	err = as.CheckUserPassword(userDB.HashedPassword, user.Password)
 	if err != nil {
-		return session, err
+		return session, exceptions.NewAuthenticationError()
 	}
 
 	if err := as.AuthRepo.DeleteSession(userDB.ID); err != nil {
-		return session, err
-	}
-
-	token, err := uuid.NewV4()
-	session_id, err := uuid.NewV4()
-	if err != nil {
-		log.Fatal(err)
+		return session, exceptions.NewInternalServerError()
 	}
 
 	session = models.Session{
-		ID:         session_id,
-		UserID:     userDB.ID,
-		Token:      token.String(),
+		ID:         uuid.Must(uuid.NewV4()),
+		UserID:     uuid.Must(uuid.NewV4()),
+		Token:      uuid.Must(uuid.NewV4()).String(),
 		ExpireTime: time.Now().Add(time.Hour * 2),
 	}
 
 	err = as.AuthRepo.CreateSession(session)
 	if err != nil {
-		return models.Session{}, err
+		return models.Session{}, exceptions.NewInternalServerError()
 	}
 
 	return session, nil
@@ -127,12 +117,12 @@ func (as *AuthService) DeleteSession(token string) error {
 	*/
 	session, err := as.AuthRepo.GetSession(token)
 	if err != nil {
-		log.Fatal("No session found")
+		return exceptions.NewInternalServerError()
 	}
 
 	err = as.AuthRepo.DeleteSession(session.ID)
 	if err != nil {
-		log.Fatal("session delete issue")
+		return exceptions.NewInternalServerError()
 	}
 	return nil
 }
@@ -140,7 +130,7 @@ func (as *AuthService) DeleteSession(token string) error {
 func (as *AuthService) GetSession(token string) (models.Session, error) {
 	session, err := as.AuthRepo.GetSession(token)
 	if err != nil {
-		return models.Session{}, err
+		return models.Session{}, exceptions.NewInternalServerError()
 	}
 	return session, nil
 }
