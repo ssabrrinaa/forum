@@ -9,12 +9,12 @@
 <body>
     <h1>Error Information</h1>
 
-    {{ if .ErrorCode }}
-        <p>Status Code: {{ .ErrorCode }}</p>
+    {{ if .StatusCode }}
+        <p>Status Code: {{ .StatusCode }}</p>
     {{ end }}
 
-    {{ if .ErrorMessage }}
-        <p>Message: {{ .ErrorMessage }}</p>
+    {{ if .Message }}
+        <p>Message: {{ .Message }}</p>
     {{ end }}
 </body>
 </html>

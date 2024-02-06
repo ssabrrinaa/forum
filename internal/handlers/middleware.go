@@ -33,10 +33,10 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 
 func (h *Handler) ErrorMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		errorStringCode := r.Header.Get("Error")
+		errorStringCode := r.URL.Query().Get("error")
 		var ctx context.Context
 		var customErr error
-		if errorStringCode != "" {
+		if errorStringCode != "" && r.URL.Path == "/" {
 			code, _ := strconv.Atoi(errorStringCode)
 			customErr = exceptions.NewBadRequestError()
 			switch code {
@@ -57,7 +57,7 @@ func (h *Handler) ErrorMiddleware(next http.Handler) http.Handler {
 			}
 			ctx = context.WithValue(r.Context(), "error", customErr)
 		} else {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			http.Redirect(w, r, "/?error=404", http.StatusSeeOther)
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))

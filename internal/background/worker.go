@@ -7,7 +7,7 @@ import (
 )
 
 func DeleteExpiredSessions(db *sql.DB) {
-	_, err := db.Exec("DELETE FROM sessions WHERE expire_time < NOW()")
+	_, err := db.Exec("DELETE FROM sessions WHERE expire_time < DATETIME('now')")
 	if err != nil {
 		log.Fatal("Error deleting expired sessions:", err)
 	}
