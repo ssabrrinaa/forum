@@ -1,7 +1,7 @@
 package postservice
 
 import (
-	"fmt"
+	"forum/internal/exceptions"
 	"forum/internal/models"
 	"forum/internal/repositories/authrepo"
 	"forum/internal/repositories/postrepo"
@@ -32,9 +32,6 @@ type PostServiceI interface {
 }
 
 func (as *PostService) CreatePost(user_id uuid.UUID, postCreate schemas.CreatePost) error {
-	fmt.Println("++++++++++++++++++")
-	fmt.Println(postCreate.Body)
-
 	post := models.Post{
 		ID:     uuid.Must(uuid.NewV4()),
 		UserId: user_id,
@@ -42,11 +39,9 @@ func (as *PostService) CreatePost(user_id uuid.UUID, postCreate schemas.CreatePo
 		Body:   postCreate.Body,
 		Image:  postCreate.Image,
 	}
-	fmt.Println(post)
 	err := as.PostRepo.CreatePost(post)
 	if err != nil {
-		fmt.Println("PostRepo", err)
-		return err
+		return exceptions.NewInternalServerError()
 	}
 	return nil
 }
@@ -62,26 +57,25 @@ func (as *PostService) UpdatePost(user_id uuid.UUID, postCreate schemas.UpdatePo
 
 	err := as.PostRepo.CreatePost(post)
 	if err != nil {
-		return err
+		return exceptions.NewInternalServerError()
 	}
 	return nil
 }
 
 func (as *PostService) GetPost(post_id uuid.UUID) (*schemas.GetPostResponse, error) {
-	// var getPostResponce schemas.GetPostResponse
 	post, err := as.PostRepo.GetPost(post_id)
 	if err != nil {
-		return nil, err
+		return nil, exceptions.NewInternalServerError()
 	}
 
 	user, err := as.AuthRepo.GetUserByUserID(post.UserId)
 	if err != nil {
-		return nil, err
+		return nil, exceptions.NewInternalServerError()
 	}
 
 	categories, err := as.PostRepo.GetCategoriesByPostID(post_id)
 	if err != nil {
-		return nil, err
+		return nil, exceptions.NewInternalServerError()
 	}
 
 	// get comments and likes
@@ -103,18 +97,18 @@ func (as *PostService) GetPostsAll() ([]*schemas.GetPostResponse, error) {
 
 	posts, err := as.PostRepo.GetPostsAll()
 	if err != nil {
-		return nil, err
+		return nil, exceptions.NewInternalServerError()
 	}
 
 	for _, post := range posts {
 		categories, err := as.PostRepo.GetCategoriesByPostID(post.ID)
 		if err != nil {
-			return nil, err
+			return nil, exceptions.NewInternalServerError()
 		}
 
 		user, err := as.AuthRepo.GetUserByUserID(post.UserId)
 		if err != nil {
-			return nil, err
+			return nil, exceptions.NewInternalServerError()
 		}
 
 		getPostsAllResponse = append(getPostsAllResponse, &schemas.GetPostResponse{
@@ -139,18 +133,18 @@ func (as *PostService) GetMyPosts(userID uuid.UUID) ([]*schemas.GetPostResponse,
 
 	posts, err := as.PostRepo.GetMyPosts(userID)
 	if err != nil {
-		return nil, err
+		return nil, exceptions.NewInternalServerError()
 	}
 
 	for _, post := range posts {
 		categories, err := as.PostRepo.GetCategoriesByPostID(post.ID)
 		if err != nil {
-			return nil, err
+			return nil, exceptions.NewInternalServerError()
 		}
 
 		user, err := as.AuthRepo.GetUserByUserID(post.UserId)
 		if err != nil {
-			return nil, err
+			return nil, exceptions.NewInternalServerError()
 		}
 
 		getMyPostsResponse = append(getMyPostsResponse, &schemas.GetPostResponse{
@@ -174,7 +168,7 @@ func (as *PostService) GetAllCategories() ([]*schemas.Category, error) {
 	var categoriesResp []*schemas.Category
 	categories, err := as.PostRepo.GetAllCategories()
 	if err != nil {
-		return nil, err
+		return nil, exceptions.NewInternalServerError()
 	}
 
 	for _, category := range categories {

@@ -8,7 +8,6 @@ import (
 	"forum/pkg/validator"
 	"html/template"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -120,7 +119,7 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, "/?error="+strings.Split(err.Error(), " ")[0], http.StatusSeeOther)
 				return
 			}
-
+			// needs to be redirected to the right page
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 	} else {
@@ -197,8 +196,7 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 
 			_, err = io.Copy(newFile, file)
 			if err != nil {
-				log.Fatal(err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
 				return
 			}
 
@@ -208,7 +206,8 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 			// }
 			postID, err := uuid.FromString(r.FormValue("post_id"))
 			if err != nil {
-				log.Fatal("invalid postID")
+				http.Redirect(w, r, "/?error=422", http.StatusSeeOther)
+				return
 			}
 
 			post := schemas.UpdatePost{
@@ -223,14 +222,16 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 
 			err = validator.ValidateUpdatePostInput(post)
 			if err != nil {
-				log.Fatal(err) // handle the errors properly
+				http.Redirect(w, r, "/?error=422", http.StatusSeeOther)
+				return
 			}
 
 			err = ah.PostService.UpdatePost(session.UserID, post)
 			if err != nil {
-				log.Fatal(err)
+				http.Redirect(w, r, "/?error="+strings.Split(err.Error(), " ")[0], http.StatusSeeOther)
+				return
 			}
-
+			// needs to be changed, because / is busy for errors.
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 	} else {
@@ -241,79 +242,84 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 
 func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		log.Fatal("")
+		http.Redirect(w, r, "/?error=405", http.StatusSeeOther)
+		return
 	}
 	sessionValue := r.Context().Value("session")
 
 	if sessionValue == nil {
-		log.Fatal("User ID not found in context")
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 
 	_, ok := sessionValue.(Session)
 	if !ok {
-		log.Fatal("Invalid user ID type in context")
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 
 	postIDStr := r.URL.Path[len("/post/"):]
 
 	postID, err := uuid.FromString(postIDStr)
 	if err != nil {
-		log.Fatal("invalid postID")
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 
 	getPostResponce, err := ah.PostService.GetPost(postID)
 	if err != nil {
-		log.Fatal(err)
+		http.Redirect(w, r, "/?error="+strings.Split(err.Error(), " ")[0], http.StatusSeeOther)
+		return
 	}
-
-	fmt.Println(getPostResponce)
-
-	// http.Redirect(w, r, "/", http.StatusSeeOther)
 
 	t, err := template.ParseFiles("ui/templates/signin.html") // different html
 	if err != nil {
-		log.Fatal(err) // handle the errors properly
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 	t.Execute(w, getPostResponce)
 }
 
 func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		log.Fatal("")
+		http.Redirect(w, r, "/?error=405", http.StatusSeeOther)
+		return
 	}
 	sessionValue := r.Context().Value("session")
 
 	if sessionValue == nil {
-		log.Fatal("User ID not found in context")
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 
 	session, ok := sessionValue.(Session)
 	if !ok {
-		log.Fatal("Invalid user ID type in context")
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 
 	getPostAllResponce, err := ah.PostService.GetPostsAll()
 	if err != nil {
-		log.Fatal(err)
+		http.Redirect(w, r, "/?error="+strings.Split(err.Error(), " ")[0], http.StatusSeeOther)
+		return
 	}
 
 	categories, err := ah.PostService.GetAllCategories()
 	if err != nil {
-		log.Fatal(err) // handle the errors properly
+		http.Redirect(w, r, "/?error="+strings.Split(err.Error(), " ")[0], http.StatusSeeOther)
+		return
 	}
 
-	fmt.Println(getPostAllResponce)
 	resp := &schemas.Data{
 		Session:    &session,
 		Posts:      getPostAllResponce,
 		Categories: categories,
 	}
 
-	// http.Redirect(w, r, "/", http.StatusSeeOther)
-
 	t, err := template.ParseFiles("ui/templates/home.html") // different html
 	if err != nil {
-		log.Fatal(err) // handle the errors properly
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 	t.Execute(w, resp)
 }
@@ -322,26 +328,26 @@ func (ah *PostHandler) GetMyPosts(w http.ResponseWriter, r *http.Request) {
 	sessionValue := r.Context().Value("session")
 
 	if sessionValue == nil {
-		log.Fatal("User ID not found in context")
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 
 	session, ok := sessionValue.(Session)
 	if !ok {
-		log.Fatal("Invalid user ID type in context")
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 
 	getPostAllResponce, err := ah.PostService.GetMyPosts(session.UserID)
 	if err != nil {
-		log.Fatal(err)
+		http.Redirect(w, r, "/?error="+strings.Split(err.Error(), " ")[0], http.StatusSeeOther)
+		return
 	}
-
-	fmt.Println(getPostAllResponce)
-
-	// http.Redirect(w, r, "/", http.StatusSeeOther)
 
 	t, err := template.ParseFiles("ui/templates/signin.html") // different html
 	if err != nil {
-		log.Fatal(err) // handle the errors properly
+		http.Redirect(w, r, "/?error=500", http.StatusSeeOther)
+		return
 	}
 	t.Execute(w, getPostAllResponce)
 }
