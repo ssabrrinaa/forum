@@ -2,3 +2,4 @@ go.mod
 go.sum
 .idea
 db_forum.db
+identifier.sqlite

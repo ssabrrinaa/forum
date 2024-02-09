@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"forum/internal/exceptions"
+	"forum/pkg/cust_encoders"
 	"net/http"
-	"strconv"
 )
 
 func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
@@ -31,33 +31,45 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 
 func (h *Handler) ErrorMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		errorStringCode := r.URL.Query().Get("error")
-		var ctx context.Context
-		var customErr error
-		if errorStringCode != "" && r.URL.Path == "/" {
-			code, _ := strconv.Atoi(errorStringCode)
-			customErr = exceptions.NewBadRequestError()
-			switch code {
-			case 401:
-				customErr = exceptions.NewAuthenticationError()
-			case 403:
-				customErr = exceptions.NewForbiddenError()
-			case 404:
-				customErr = exceptions.NewResourceNotFoundError()
-			case 405:
-				customErr = exceptions.NewStatusMethodNotAllowed()
-			case 409:
-				customErr = exceptions.NewStatusConflicError()
-			case 422:
-				customErr = exceptions.NewValidationError()
-			case 500:
-				customErr = exceptions.NewInternalServerError()
+		if r.URL.Path == "/" {
+			errorStringParam := r.URL.Query().Get("params")
+			if errorStringParam == "" {
+				http.Redirect(w, r, "/signin", http.StatusSeeOther)
+			} else {
+				err := cust_encoders.DecodeParams(errorStringParam)
+				var (
+					customErr error
+					ctx       context.Context
+				)
+				switch err.(type) {
+				case exceptions.AuthenticationError:
+					customErr = err
+				case exceptions.ForbiddenError:
+					customErr = err
+				case exceptions.ResourceNotFoundError:
+					customErr = err
+				case exceptions.StatusMethodNotAllowed:
+					customErr = err
+				case exceptions.StatusConflictError:
+					customErr = err
+				case exceptions.ValidationError:
+					customErr = err
+				case exceptions.InternalServerError:
+					customErr = err
+				case exceptions.BadRequestError:
+					customErr = err
+				default:
+					http.Redirect(w, r, "/signin", http.StatusSeeOther)
+					return
+				}
+
+				ctx = context.WithValue(r.Context(), "error", customErr)
+				next.ServeHTTP(w, r.WithContext(ctx))
 			}
-			ctx = context.WithValue(r.Context(), "error", customErr)
 		} else {
-			http.Redirect(w, r, "/?error=404", http.StatusSeeOther)
-			return
+			dataErr := exceptions.NewResourceNotFoundError()
+			params := cust_encoders.EncodeParams(dataErr)
+			http.Redirect(w, r, "/?params="+params, http.StatusSeeOther)
 		}
-		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
