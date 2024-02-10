@@ -1,7 +1,6 @@
 package authhandler
 
 import (
-	"fmt"
 	"forum/internal/exceptions"
 	"forum/internal/schemas"
 	"forum/pkg/cust_encoders"
@@ -47,7 +46,9 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		// method not allowed
+		dataErr := exceptions.NewStatusMethodNotAllowed()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 	}
 }
 
@@ -96,12 +97,18 @@ func (ah *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		// method not allowed
-		fmt.Println("method not allowed")
+		dataErr := exceptions.NewStatusMethodNotAllowed()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 	}
 }
 
 func (ah *AuthHandler) LogOut(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		dataErr := exceptions.NewStatusMethodNotAllowed()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+	}
 	cookie, _ := r.Cookie("session")
 
 	err := ah.AuthService.DeleteSession(cookie.Value)

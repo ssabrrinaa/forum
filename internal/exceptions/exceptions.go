@@ -19,10 +19,6 @@ type AuthenticationError struct {
 	ClientSideError
 }
 
-type AuthorizationError struct {
-	ClientSideError
-}
-
 type ResourceNotFoundError struct {
 	ClientSideError
 }

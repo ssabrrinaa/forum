@@ -32,32 +32,38 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 func (h *Handler) ErrorMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
-			errorStringParam := r.URL.Query().Get("params")
-			if errorStringParam == "" {
+			//errorStringParam := r.URL.Query().Get("params")
+			stringParams := r.URL.RawQuery
+			if stringParams == "" {
 				http.Redirect(w, r, "/signin", http.StatusSeeOther)
 			} else {
-				err := cust_encoders.DecodeParams(errorStringParam)
+				dataErr, err := cust_encoders.DecodeParams(stringParams)
+				if err != nil {
+					dataErr := exceptions.NewBadRequestError()
+					params := cust_encoders.EncodeParams(dataErr)
+					http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+				}
 				var (
 					customErr error
 					ctx       context.Context
 				)
-				switch err.(type) {
+				switch dataErr.(type) {
 				case exceptions.AuthenticationError:
-					customErr = err
+					customErr = dataErr
 				case exceptions.ForbiddenError:
-					customErr = err
+					customErr = dataErr
 				case exceptions.ResourceNotFoundError:
-					customErr = err
+					customErr = dataErr
 				case exceptions.StatusMethodNotAllowed:
-					customErr = err
+					customErr = dataErr
 				case exceptions.StatusConflictError:
-					customErr = err
+					customErr = dataErr
 				case exceptions.ValidationError:
-					customErr = err
+					customErr = dataErr
 				case exceptions.InternalServerError:
-					customErr = err
+					customErr = dataErr
 				case exceptions.BadRequestError:
-					customErr = err
+					customErr = dataErr
 				default:
 					http.Redirect(w, r, "/signin", http.StatusSeeOther)
 					return
@@ -69,7 +75,7 @@ func (h *Handler) ErrorMiddleware(next http.Handler) http.Handler {
 		} else {
 			dataErr := exceptions.NewResourceNotFoundError()
 			params := cust_encoders.EncodeParams(dataErr)
-			http.Redirect(w, r, "/?params="+params, http.StatusSeeOther)
+			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		}
 	})
 }

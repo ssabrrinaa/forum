@@ -20,7 +20,7 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, parseErr := template.ParseFiles("ui/templates/errors.html")
+	t, parseErr := template.ParseFiles("ui/templates/error.html")
 	if parseErr != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
