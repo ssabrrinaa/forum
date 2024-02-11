@@ -2,29 +2,31 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"net/http"
+
 	"forum/internal/exceptions"
 	"forum/pkg/cust_encoders"
-	"net/http"
 )
 
 func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("session")
-		if err != nil {
-			http.Redirect(w, r, "/signin", http.StatusSeeOther)
-			return
+		var ctx context.Context
+		cookie, cookie_err := r.Cookie("session")
+		if _, ok := h.ExcludeSessionHandlersPath[r.URL.Path]; !ok {
+			if cookie_err != nil {
+				http.Redirect(w, r, "/signin", http.StatusSeeOther)
+				return
+			}
+			session, session_err := h.AuthHandler.AuthService.GetSession(cookie.Value)
+			if session_err != nil {
+				http.Redirect(w, r, "/signin", http.StatusSeeOther)
+				return
+			}
+
+			ctx = context.WithValue(r.Context(), "session", session)
+		} else {
+			ctx = r.Context()
 		}
-
-		session, err := h.AuthHandler.AuthService.GetSession(cookie.Value)
-		if err != nil {
-			http.Redirect(w, r, "/signin", http.StatusSeeOther)
-			return
-		}
-
-		fmt.Println("Sessoin is contex is set")
-
-		ctx := context.WithValue(r.Context(), "session", session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -32,7 +34,6 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 func (h *Handler) ErrorMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
-			//errorStringParam := r.URL.Query().Get("params")
 			stringParams := r.URL.RawQuery
 			if stringParams == "" {
 				http.Redirect(w, r, "/signin", http.StatusSeeOther)

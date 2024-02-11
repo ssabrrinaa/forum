@@ -2,6 +2,8 @@ package handler
 
 import (
 	"fmt"
+	"forum/internal/exceptions"
+	"forum/pkg/cust_encoders"
 	"html/template"
 	"net/http"
 )
@@ -16,18 +18,24 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, ok := errObj.(error)
 	if !ok {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
 
 	t, parseErr := template.ParseFiles("ui/templates/error.html")
 	if parseErr != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
 
 	err := t.Execute(w, errObj)
 	if err != nil {
-		return
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 	}
 }
