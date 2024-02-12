@@ -11,6 +11,7 @@ func (h *Handler) Routes() *http.ServeMux {
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 	// handlers passed through middleware
+	loginHandler := http.HandlerFunc(h.AuthHandler.SignIn)
 	logoutHandler := http.HandlerFunc(h.AuthHandler.LogOut)
 	postCreateHandler := http.HandlerFunc(h.PostHandler.PostCreate)
 	postUpdateHandler := http.HandlerFunc(h.PostHandler.PostUpdate)
@@ -21,7 +22,7 @@ func (h *Handler) Routes() *http.ServeMux {
 	postGetMyPostsHandler := http.HandlerFunc(h.PostHandler.GetMyPosts)
 
 	mux.HandleFunc("/register", h.AuthHandler.RegisterUser)
-	mux.HandleFunc("/signin", h.AuthHandler.SignIn)
+	mux.Handle("/signin", h.SessionMiddleware(loginHandler))
 	mux.Handle("/logout", h.SessionMiddleware(logoutHandler))
 	mux.Handle("/post/", h.SessionMiddleware(postGetAllHandler))
 	mux.Handle("/post/get", h.SessionMiddleware(postGetHandler))

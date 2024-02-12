@@ -10,6 +10,7 @@ type Config struct {
 	DriverDb      string `json:"db_driver"`
 	Port          string `json:"port"`
 	MigrationPath string `json:"migration_path"`
+	InitDataPath  string `json:"init_data_path"`
 }
 
 func NewConfig() (Config, error) {

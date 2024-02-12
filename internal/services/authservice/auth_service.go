@@ -28,9 +28,9 @@ type AuthServiceI interface {
 	CreateSession(user schemas.AuthUser) (models.Session, error)
 
 	CheckUserPassword(email, password string) error
-	GetSession(token string) (models.Session, error)
+	GetSession() (models.Session, error)
 
-	DeleteSession(token string) error
+	DeleteSession() error
 }
 
 func (as *AuthService) CreateUser(user schemas.CreateUser) error {
@@ -77,13 +77,13 @@ func (as *AuthService) CreateSession(user schemas.AuthUser) (models.Session, err
 		return session, exceptions.NewAuthenticationError()
 	}
 
-	if err := as.AuthRepo.DeleteSession(userDB.ID); err != nil {
+	if err := as.AuthRepo.DeleteSession(); err != nil {
 		return session, exceptions.NewInternalServerError()
 	}
 
 	session = models.Session{
 		ID:         uuid.Must(uuid.NewV4()),
-		UserID:     uuid.Must(uuid.NewV4()),
+		UserID:     userDB.ID,
 		Token:      uuid.Must(uuid.NewV4()).String(),
 		ExpireTime: time.Now().Add(time.Hour * 2),
 	}
@@ -109,26 +109,26 @@ func (as *AuthService) CheckUserPassword(passwordDB, password string) error {
 	return nil
 }
 
-func (as *AuthService) DeleteSession(token string) error {
+func (as *AuthService) DeleteSession() error {
 	/*
 		get session
 		exists -> check the time
 		delete
 	*/
-	session, err := as.AuthRepo.GetSession(token)
+	_, err := as.AuthRepo.GetSession()
 	if err != nil {
 		return exceptions.NewInternalServerError()
 	}
 
-	err = as.AuthRepo.DeleteSession(session.ID)
+	err = as.AuthRepo.DeleteSession()
 	if err != nil {
 		return exceptions.NewInternalServerError()
 	}
 	return nil
 }
 
-func (as *AuthService) GetSession(token string) (models.Session, error) {
-	session, err := as.AuthRepo.GetSession(token)
+func (as *AuthService) GetSession() (models.Session, error) {
+	session, err := as.AuthRepo.GetSession()
 	if err != nil {
 		return models.Session{}, exceptions.NewInternalServerError()
 	}
