@@ -23,14 +23,13 @@ func (h *Handler) Routes() *http.ServeMux {
 	mux.HandleFunc("/register", h.AuthHandler.RegisterUser)
 	mux.HandleFunc("/signin", h.AuthHandler.SignIn)
 	mux.Handle("/logout", h.SessionMiddleware(logoutHandler))
-	mux.Handle("/post/create", h.SessionMiddleware(postCreateHandler)) // add PostHandler
-	mux.Handle("/post/update", h.SessionMiddleware(postUpdateHandler)) //
-	mux.Handle("/", h.ErrorMiddleware(errorsHandler))
-
 	mux.Handle("/post/", h.SessionMiddleware(postGetAllHandler))
 	mux.Handle("/post/get", h.SessionMiddleware(postGetHandler))
+	mux.Handle("/post/create", h.SessionMiddleware(postCreateHandler)) // add PostHandler
+	mux.Handle("/post/update", h.SessionMiddleware(postUpdateHandler)) //
 	mux.Handle("/post/myposts", h.SessionMiddleware(postGetMyPostsHandler))
 
+	mux.Handle("/", h.ErrorMiddleware(errorsHandler))
 	return mux
 }
 

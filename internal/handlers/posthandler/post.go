@@ -2,19 +2,21 @@ package posthandler
 
 import (
 	"fmt"
-	"forum/internal/constants"
-	"forum/internal/exceptions"
-	. "forum/internal/models"
-	"forum/internal/schemas"
-	"forum/pkg/cust_encoders"
-	"forum/pkg/validator"
-	"github.com/gofrs/uuid"
 	"html/template"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"forum/internal/constants"
+	"forum/internal/exceptions"
+	. "forum/internal/models"
+	"forum/internal/schemas"
+	"forum/pkg/cust_encoders"
+	"forum/pkg/validator"
+
+	"github.com/gofrs/uuid"
 )
 
 func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
@@ -340,23 +342,17 @@ func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionValue := r.Context().Value("session")
+	var session *Session
 
-	if sessionValue == nil {
-		dataErr := exceptions.NewInternalServerError()
-		params := cust_encoders.EncodeParams(dataErr)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
+	if sessionValue != nil {
+		sessionVal, ok := sessionValue.(Session)
+		if ok {
+			session = &sessionVal
+		}
+
 	}
 
-	session, ok := sessionValue.(Session)
-	if !ok {
-		dataErr := exceptions.NewInternalServerError()
-		params := cust_encoders.EncodeParams(dataErr)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
-	}
-
-	getPostAllResponce, err := ah.PostService.GetPostsAll()
+	getPostAllResponse, err := ah.PostService.GetPostsAll()
 	if err != nil {
 		params := cust_encoders.EncodeParams(err)
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
@@ -371,8 +367,8 @@ func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := &schemas.Data{
-		Session:    &session,
-		Posts:      getPostAllResponce,
+		Session:    session,
+		Posts:      getPostAllResponse,
 		Categories: categories,
 	}
 
@@ -404,7 +400,7 @@ func (ah *PostHandler) GetMyPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	getPostAllResponce, err := ah.PostService.GetMyPosts(session.UserID)
+	getPostAllResponse, err := ah.PostService.GetMyPosts(session.UserID)
 	if err != nil {
 		params := cust_encoders.EncodeParams(err)
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
@@ -418,5 +414,5 @@ func (ah *PostHandler) GetMyPosts(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
-	t.Execute(w, getPostAllResponce)
+	t.Execute(w, getPostAllResponse)
 }
