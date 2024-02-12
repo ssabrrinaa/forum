@@ -93,7 +93,7 @@ func (ah *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 				}
 
 				http.SetCookie(w, cookie)
-				http.Redirect(w, r, "/", http.StatusSeeOther)
+				http.Redirect(w, r, "/post/", http.StatusSeeOther)
 			}
 		}
 	} else {
@@ -108,22 +108,24 @@ func (ah *AuthHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 		dataErr := exceptions.NewStatusMethodNotAllowed()
 		params := cust_encoders.EncodeParams(dataErr)
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
 	}
-	cookie, _ := r.Cookie("session")
 
-	err := ah.AuthService.DeleteSession(cookie.Value)
+	err := ah.AuthService.DeleteSession()
 	if err != nil {
 		params := cust_encoders.EncodeParams(err)
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-	} else {
-		expiredCookie := &http.Cookie{
-			Name:     "session",
-			Value:    "",
-			Path:     "/",
-			HttpOnly: true,
-			MaxAge:   -1,
-		}
-		http.SetCookie(w, expiredCookie)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
+
+	expiredCookie := &http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1,
+	}
+	http.SetCookie(w, expiredCookie)
+
+	http.Redirect(w, r, "/post/", http.StatusSeeOther)
 }

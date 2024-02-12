@@ -17,7 +17,8 @@ func NewHandler(service *service.Service) *Handler {
 		AuthHandler: authhandler.NewAuthHandler(service.AuthService),
 		PostHandler: posthandler.NewPostHandler(service.PostService),
 		ExcludeSessionHandlersPath: map[string]struct{}{
-			"/post/": {},
+			"/post/":  {},
+			"/signin": {},
 		},
 	}
 }

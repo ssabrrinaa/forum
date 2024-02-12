@@ -24,10 +24,10 @@ type AuthRepoI interface {
 
 	GetUserByEmail(email string) (models.User, error)
 	GetUserByToken(token string) (models.User, error)
-	GetSession(token string) (models.Session, error)
+	GetSession() (models.Session, error)
 	GetUserByUserID(userID uuid.UUID) (models.User, error)
 
-	DeleteSession(ID uuid.UUID) error
+	DeleteSession() error
 }
 
 func (ar *AuthRepo) CreateUser(user models.User) error {
@@ -80,25 +80,23 @@ func (ar *AuthRepo) GetUserByToken(email string) (models.User, error) {
 	return user, nil
 }
 
-func (ar *AuthRepo) DeleteSession(ID uuid.UUID) error {
+func (ar *AuthRepo) DeleteSession() error {
 	stmt := `
-		DELETE FROM sessions 
-		WHERE session_id = ?;
+		DELETE FROM sessions;
 	`
-	if _, err := ar.db.Exec(stmt, ID); err != nil {
+	if _, err := ar.db.Exec(stmt); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (ar *AuthRepo) GetSession(token string) (models.Session, error) {
+func (ar *AuthRepo) GetSession() (models.Session, error) {
 	var session models.Session
 	stmt := `
-		SELECT session_id, user_id, token, expire_time FROM sessions 
-		WHERE token = ?;
+		SELECT session_id, user_id, token, expire_time FROM sessions;
 	`
-	if err := ar.db.QueryRow(stmt, token).Scan(&session.ID, &session.UserID, &session.Token, &session.ExpireTime); err != nil {
+	if err := ar.db.QueryRow(stmt).Scan(&session.ID, &session.UserID, &session.Token, &session.ExpireTime); err != nil {
 		return models.Session{}, err
 	}
 

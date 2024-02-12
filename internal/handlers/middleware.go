@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"forum/internal/exceptions"
@@ -10,24 +11,67 @@ import (
 
 func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.URL.Path)
 		var ctx context.Context
-		cookie, cookie_err := r.Cookie("session")
-		if _, ok := h.ExcludeSessionHandlersPath[r.URL.Path]; !ok {
-			if cookie_err != nil {
-				http.Redirect(w, r, "/signin", http.StatusSeeOther)
-				return
-			}
-			session, session_err := h.AuthHandler.AuthService.GetSession(cookie.Value)
-			if session_err != nil {
+		session, sessionErr := h.AuthHandler.AuthService.GetSession()
+		fmt.Println(session)
+		cookie, cookieErr := r.Cookie("session")
+		if _, exclude := h.ExcludeSessionHandlersPath[r.URL.Path]; !exclude {
+			if sessionErr != nil {
 				http.Redirect(w, r, "/signin", http.StatusSeeOther)
 				return
 			}
 
-			ctx = context.WithValue(r.Context(), "session", session)
+			if cookieErr != nil {
+				newCookie := &http.Cookie{
+					Name:     "session",
+					Value:    session.Token,
+					Path:     "/",
+					Expires:  session.ExpireTime,
+					HttpOnly: true,
+					MaxAge:   7200,
+				}
+				http.SetCookie(w, newCookie)
+				ctx := context.WithValue(r.Context(), "session", session)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
+			if session.Token != cookie.Value {
+				dataErr := exceptions.NewAuthenticationError()
+				params := cust_encoders.EncodeParams(dataErr)
+				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), "session", session)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		} else {
-			ctx = r.Context()
+			if sessionErr == nil {
+				if r.URL.Path == "/signin" {
+					fmt.Println("asdasds")
+					if session.Token == cookie.Value {
+						http.Redirect(w, r, "/post/", http.StatusSeeOther)
+						return
+					}
+					err := h.AuthHandler.AuthService.DeleteSession()
+					if err != nil {
+						params := cust_encoders.EncodeParams(err)
+						if err != nil {
+							http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+							return
+						}
+					}
+					ctx = r.Context()
+				} else {
+					ctx = context.WithValue(r.Context(), "session", session)
+				}
+			} else {
+				ctx = r.Context()
+			}
+
+			next.ServeHTTP(w, r.WithContext(ctx))
 		}
-		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
