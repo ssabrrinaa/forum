@@ -19,12 +19,24 @@ func NewPostRepo(db *sql.DB) *PostRepo {
 
 type PostRepoI interface {
 	CreatePost(post models.Post) error
+	CreatePostCategories(post models.CreateCategoryPost) error
 	UpdatePost(post models.Post) error
 	GetPost(postID uuid.UUID) (models.Post, error)
 	GetPostsAll() ([]models.Post, error)
 	GetMyPosts(userID uuid.UUID) ([]models.Post, error)
 	GetCategoriesByPostID(postID uuid.UUID) ([]string, error)
 	GetAllCategories() ([]*models.Category, error)
+}
+
+func (ar *PostRepo) CreatePostCategories(input models.CreateCategoryPost) error {
+	stmt := `
+		INSERT INTO categories_posts_association (association_id, category_id, post_id) 
+		VALUES (?, (select category_id from categories where name = ?), ?);
+	`
+	if _, err := ar.db.Exec(stmt, input.ID, input.CategoryName, input.PostID); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ar *PostRepo) CreatePost(post models.Post) error {
@@ -60,13 +72,13 @@ func (ar *PostRepo) GetPost(postID uuid.UUID) (models.Post, error) {
 			user_id,
 			title,
 			body,
-			image,
+			image
 		FROM posts
 		WHERE post_id = ?;
 	`
 	raw := ar.db.QueryRow(stmt, postID)
 
-	if err := raw.Scan(&post.ID, &post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Image); err != nil {
+	if err := raw.Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Image); err != nil {
 		return post, err
 	}
 	return post, nil

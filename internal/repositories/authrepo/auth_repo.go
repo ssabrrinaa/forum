@@ -2,7 +2,6 @@ package authrepo
 
 import (
 	"database/sql"
-	"fmt"
 	"forum/internal/models"
 
 	"github.com/gofrs/uuid"
@@ -42,7 +41,6 @@ func (ar *AuthRepo) CreateUser(user models.User) error {
 }
 
 func (ar *AuthRepo) CreateSession(session models.Session) error {
-	fmt.Println(session)
 	stmt := `
 		INSERT INTO sessions (session_id, user_id, token, expire_time) 
 		VALUES (?, ?, ?, ?);
@@ -107,7 +105,7 @@ func (ar *AuthRepo) GetUserByUserID(userID uuid.UUID) (models.User, error) {
 	var user models.User
 	stmt := `
 		SELECT user_id, username, email FROM users 
-		WHERE token = ?;
+		WHERE user_id = ?;
 	`
 	if err := ar.db.QueryRow(stmt, userID).Scan(&user.ID, &user.Username, &user.Email); err != nil {
 		return models.User{}, err

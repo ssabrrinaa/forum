@@ -32,8 +32,10 @@ type PostServiceI interface {
 }
 
 func (as *PostService) CreatePost(user_id uuid.UUID, postCreate schemas.CreatePost) error {
+	postID := uuid.Must(uuid.NewV4())
+
 	post := models.Post{
-		ID:     uuid.Must(uuid.NewV4()),
+		ID:     postID,
 		UserId: user_id,
 		Title:  postCreate.Title,
 		Body:   postCreate.Body,
@@ -43,6 +45,19 @@ func (as *PostService) CreatePost(user_id uuid.UUID, postCreate schemas.CreatePo
 	if err != nil {
 		return exceptions.NewInternalServerError()
 	}
+
+	for _, category := range postCreate.Categories {
+		err := as.PostRepo.CreatePostCategories(models.CreateCategoryPost{
+			ID:           uuid.Must(uuid.NewV4()),
+			CategoryName: category,
+			PostID:       postID,
+		})
+		if err != nil {
+			return exceptions.NewInternalServerError()
+		}
+
+	}
+
 	return nil
 }
 
@@ -77,7 +92,7 @@ func (as *PostService) GetPost(post_id uuid.UUID) (*schemas.GetPostResponse, err
 	if err != nil {
 		return nil, exceptions.NewInternalServerError()
 	}
-
+	
 	// get comments and likes
 
 	return &schemas.GetPostResponse{

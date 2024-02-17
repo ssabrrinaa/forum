@@ -25,7 +25,7 @@
     </div>
     <div>
         {{if .Session}}
-        <a class="navbutton" href="/myposts">My Posts</a>
+        <a class="navbutton" href="/post/myposts">My Posts</a>
         <form action="/auth/signout" method="POST">
             <button type="submit">Signout</button>
         </form>
@@ -83,7 +83,7 @@
         <div>
 
             <label>Content:</label>
-            <textarea name="content" maxlength="2000"></textarea>
+            <textarea name="body" maxlength="2000"></textarea>
         </div>
         <div>
             <div>

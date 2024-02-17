@@ -3,18 +3,15 @@ package handler
 import (
 	"context"
 	"fmt"
-	"net/http"
-
 	"forum/internal/exceptions"
 	"forum/pkg/cust_encoders"
+	"net/http"
 )
 
 func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.URL.Path)
 		var ctx context.Context
 		session, sessionErr := h.AuthHandler.AuthService.GetSession()
-		fmt.Println(session)
 		cookie, cookieErr := r.Cookie("session")
 		if _, exclude := h.ExcludeSessionHandlersPath[r.URL.Path]; !exclude {
 			if sessionErr != nil {
@@ -49,7 +46,6 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 		} else {
 			if sessionErr == nil {
 				if r.URL.Path == "/signin" {
-					fmt.Println("asdasds")
 					if session.Token == cookie.Value {
 						http.Redirect(w, r, "/post/", http.StatusSeeOther)
 						return

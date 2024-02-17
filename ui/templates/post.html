@@ -20,14 +20,14 @@
     <nav>
         <div>
             <a class="navbutton" href="/">Home</a>
-            {{if .User}}
+            {{if .Session}}
             <a class="navbutton" href="/post/create">Create Post</a>
             <a class="navbutton" href="/likeposts">Liked Posts</a>
             {{end}}
         </div>
         <div>
-            {{if .User}}
-            <a class="navbutton" href="/myposts">My Posts</a>
+            {{if .Session}}
+            <a class="navbutton" href="/post/myposts">My Posts</a>
             <form action="/logout" method="POST">
                 <button type="submit">Signout</button>
             </form>
@@ -41,19 +41,19 @@
         {{with .Post}}
         <div class='snippet'>
             <div class='metadata'>
-                <b class="left">{{.Title}}</b>
-                <span class="right">#{{.PostId}}</span>
-                <span class="right">{Categories:</span>
+                <b class="left">{{.PostTitle}}</b>
+                <!-- <span class="right">#{{.PostID}}</span> -->
+                <span class="right">Categories:</span><br>
                 {{range .Categories}}
-                <span class="right">{{.}}</span>
+                <span class="right">{{.}}</span><br>
                 {{end}}
-                <span class="right">}</span>
+                <span class="right"></span>
             </div>
-            <pre>{{.Content}}</pre>
+            <pre>{{.PostBody}}</pre>
             <div class='metadata'>
                 <span>
                     <form method="POST" action="/post/vote/create#like">
-                        <input type="hidden" name="post_id" value="{{.PostId}}">
+                        <input type="hidden" name="post_id" value="{{.PostID}}">
                         <input type="hidden" name="vote" value=1>
                         <button id="like" type="submit"><img src="/static/img/like.png" style="width: 30px ;"
                                 alt="like button"> {{.Like}} </button>
@@ -61,22 +61,22 @@
                 </span>
                 <span>
                     <form method="POST" action="/post/vote/create#dislike">
-                        <input type="hidden" name="post_id" value="{{.PostId}}">
+                        <input type="hidden" name="post_id" value="{{.PostID}}">
                         <input type="hidden" name="vote" value=-1>
                         <button id="dislike" type="submit"><img src="/static/img/dislike.png" style="width: 30px ;"
                                 alt="dislike button"> {{.Dislike}}</button>
                     </form>
                 </span>
                 <div class="time-post">
-                    posted {{.CreateAt.Format "02/01/2006 15:04"}} by<b>{{.UserName}}</b>
+                    posted {{.CreatedAt.Format "02/01/2006 15:04"}} by<b>{{.Username}}</b>
                 </div>
             </div>
             {{end}}
-            {{if .User}}
+            {{if .Session}}
             <div class="comments">
                 <div class="comments_create">
                     <form method="POST" action="/comment/create">
-                        <input type="hidden" name="post_id" value={{.Post.PostId}}>
+                        <input type="hidden" name="post_id" value={{.Post.PostID}}>
                         {{if .Form}}
                         {{with .Form.Errors.content}}
                         {{range .}}
@@ -105,7 +105,7 @@
                     <div id="{{.Id}}" class='comment'>
                         <span>
                             <form method="POST" action="/comment/vote/create#{{.Id}}">
-                                <input type="hidden" name="post_id" value="{{.PostId}}">
+                                <input type="hidden" name="post_id" value="{{.PostID}}">
                                 <input type="hidden" name="comment_id" value="{{.Id}}">
                                 <input type="hidden" name="vote" value=1>
                                 <button type="submit"><img src="/static/img/like.png" style="width: 25px ;"
@@ -114,7 +114,7 @@
                         </span>
                         <span>
                             <form method="POST" action="/comment/vote/create#{{.Id}}">
-                                <input type="hidden" name="post_id" value="{{.PostId}}">
+                                <input type="hidden" name="post_id" value="{{.PostID}}">
                                 <input type="hidden" name="comment_id" value="{{.Id}}">
                                 <input type="hidden" name="vote" value=-1>
                                 <button type="submit"><img src="/static/img/dislike.png" style="width: 25px ;"

@@ -28,8 +28,10 @@ type GetPostResponse struct {
 	PostBody   string
 	PostImage  string
 	Categories []string
+	Like       int
+	Dislike    int
+
 	// Comments
-	// Likes
 }
 
 type Data struct {

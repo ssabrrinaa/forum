@@ -11,23 +11,23 @@ func (h *Handler) Routes() *http.ServeMux {
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 	// handlers passed through middleware
-	loginHandler := http.HandlerFunc(h.AuthHandler.SignIn)
-	logoutHandler := http.HandlerFunc(h.AuthHandler.LogOut)
-	postCreateHandler := http.HandlerFunc(h.PostHandler.PostCreate)
+	loginHandler := http.HandlerFunc(h.AuthHandler.SignIn)          // +
+	logoutHandler := http.HandlerFunc(h.AuthHandler.LogOut)         // +
+	postCreateHandler := http.HandlerFunc(h.PostHandler.PostCreate) // +
 	postUpdateHandler := http.HandlerFunc(h.PostHandler.PostUpdate)
 	errorsHandler := http.HandlerFunc(errorHandler)
 
-	postGetHandler := http.HandlerFunc(h.PostHandler.PostGet)
-	postGetAllHandler := http.HandlerFunc(h.PostHandler.PostGetAll)
-	postGetMyPostsHandler := http.HandlerFunc(h.PostHandler.GetMyPosts)
+	postGetHandler := http.HandlerFunc(h.PostHandler.PostGet)           // +
+	postGetAllHandler := http.HandlerFunc(h.PostHandler.PostGetAll)     // +
+	postGetMyPostsHandler := http.HandlerFunc(h.PostHandler.GetMyPosts) // +
 
 	mux.HandleFunc("/register", h.AuthHandler.RegisterUser)
 	mux.Handle("/signin", h.SessionMiddleware(loginHandler))
 	mux.Handle("/logout", h.SessionMiddleware(logoutHandler))
 	mux.Handle("/post/", h.SessionMiddleware(postGetAllHandler))
 	mux.Handle("/post/get", h.SessionMiddleware(postGetHandler))
-	mux.Handle("/post/create", h.SessionMiddleware(postCreateHandler)) // add PostHandler
-	mux.Handle("/post/update", h.SessionMiddleware(postUpdateHandler)) //
+	mux.Handle("/post/create", h.SessionMiddleware(postCreateHandler))
+	mux.Handle("/post/update", h.SessionMiddleware(postUpdateHandler))
 	mux.Handle("/post/myposts", h.SessionMiddleware(postGetMyPostsHandler))
 
 	mux.Handle("/", h.ErrorMiddleware(errorsHandler))

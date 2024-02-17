@@ -2,6 +2,11 @@ package posthandler
 
 import (
 	"fmt"
+	"forum/internal/constants"
+	"forum/internal/exceptions"
+	"forum/internal/schemas"
+	"forum/pkg/cust_encoders"
+	"forum/pkg/validator"
 	"html/template"
 	"io"
 	"mime/multipart"
@@ -9,12 +14,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"forum/internal/constants"
-	"forum/internal/exceptions"
 	. "forum/internal/models"
-	"forum/internal/schemas"
-	"forum/pkg/cust_encoders"
-	"forum/pkg/validator"
 
 	"github.com/gofrs/uuid"
 )
@@ -66,17 +66,15 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else if r.Method == http.MethodPost {
-		if err := r.ParseMultipartForm(constants.MaxFileSize); err != nil {
+		if err := r.ParseForm(); err != nil {
 			dataErr := exceptions.NewBadRequestError()
 			params := cust_encoders.EncodeParams(dataErr)
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		} else {
 			// file, header, err := r.FormFile("file")
-			// fmt.Println(err)
 			// if err != nil {
 			// 	log.Fatal(err)
 			// }
-			// fmt.Println("filename", header.Filename)
 
 			// defer file.Close()
 
@@ -86,7 +84,6 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 			// 	http.Error(w, "Unsupported file type", http.StatusBadRequest)
 			// 	return
 			// }
-			// fmt.Println(1)
 
 			// imageFilename := uuid.Must(uuid.NewV4()).String() + ext
 			// uploadDir := constants.UploadDir
@@ -101,7 +98,6 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 			// 	return
 			// }
 			// defer newFile.Close()
-			// fmt.Println(2)
 			// _, err = io.Copy(newFile, file)
 			// if err != nil {
 			// 	log.Fatal(err)
@@ -115,12 +111,11 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 			// }
 
 			post := schemas.CreatePost{
-				Title: r.FormValue("title"),
-				Body:  r.FormValue("body"),
-				Image: "/dgf/dfg",
-				// Categories: categories,
+				Title:      r.FormValue("title"),
+				Body:       r.FormValue("body"),
+				Image:      "/dgf/dfg",
+				Categories: r.PostForm["categories"],
 			}
-
 			err := validator.ValidateCreatePostInput(post)
 			if err != nil {
 				dataErr := exceptions.NewValidationError()
@@ -136,11 +131,11 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			// needs to be redirected to the right page
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			http.Redirect(w, r, "/post", http.StatusSeeOther)
 		}
 	} else {
 		// method not allowed
-		fmt.Println("method not allowed")
+		fmt.Println("method not allowed") // handle the error properly
 	}
 }
 
@@ -279,7 +274,6 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// method not allowed
-		fmt.Println("method not allowed")
 	}
 }
 
@@ -290,6 +284,7 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
+
 	sessionValue := r.Context().Value("session")
 
 	if sessionValue == nil {
@@ -299,7 +294,7 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, ok := sessionValue.(Session)
+	session, ok := sessionValue.(Session)
 	if !ok {
 		dataErr := exceptions.NewInternalServerError()
 		params := cust_encoders.EncodeParams(dataErr)
@@ -307,8 +302,7 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postIDStr := r.URL.Path[len("/post/"):]
-
+	postIDStr := r.URL.Query().Get("post_id")
 	postID, err := uuid.FromString(postIDStr)
 	if err != nil {
 		dataErr := exceptions.NewInternalServerError()
@@ -323,15 +317,19 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
+	resp := &schemas.Data{
+		Session: &session,
+		Post:    getPostResponce,
+	}
 
-	t, err := template.ParseFiles("ui/templates/signin.html") // different html
+	t, err := template.ParseFiles("ui/templates/post.html") // different html
 	if err != nil {
 		dataErr := exceptions.NewInternalServerError()
 		params := cust_encoders.EncodeParams(dataErr)
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
-	t.Execute(w, getPostResponce)
+	t.Execute(w, resp)
 }
 
 func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
@@ -341,15 +339,22 @@ func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
+
 	sessionValue := r.Context().Value("session")
-	var session *Session
 
-	if sessionValue != nil {
-		sessionVal, ok := sessionValue.(Session)
-		if ok {
-			session = &sessionVal
-		}
+	if sessionValue == nil {
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
 
+	session, ok := sessionValue.(Session)
+	if !ok {
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
 	}
 
 	getPostAllResponse, err := ah.PostService.GetPostsAll()
@@ -367,12 +372,12 @@ func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := &schemas.Data{
-		Session:    session,
+		Session:    &session,
 		Posts:      getPostAllResponse,
 		Categories: categories,
 	}
 
-	t, err := template.ParseFiles("ui/templates/home.html") // different html
+	t, err := template.ParseFiles("ui/templates/home.html")
 	if err != nil {
 		dataErr := exceptions.NewInternalServerError()
 		params := cust_encoders.EncodeParams(dataErr)
@@ -399,6 +404,7 @@ func (ah *PostHandler) GetMyPosts(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/?p"+params, http.StatusSeeOther)
 		return
 	}
+	fmt.Println("sesion,", session)
 
 	getPostAllResponse, err := ah.PostService.GetMyPosts(session.UserID)
 	if err != nil {
@@ -407,12 +413,17 @@ func (ah *PostHandler) GetMyPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := template.ParseFiles("ui/templates/signin.html") // different html
+	resp := &schemas.Data{
+		Session: &session,
+		Posts:   getPostAllResponse,
+	}
+
+	t, err := template.ParseFiles("ui/templates/home.html")
 	if err != nil {
 		dataErr := exceptions.NewInternalServerError()
 		params := cust_encoders.EncodeParams(dataErr)
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
-	t.Execute(w, getPostAllResponse)
+	t.Execute(w, resp)
 }
