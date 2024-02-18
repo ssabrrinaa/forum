@@ -15,8 +15,8 @@ var (
 	ErrorInvalidEmail         = errors.New("Invalid email adress")
 	ErrorPasswordMatch        = errors.New("Password and confirmed password do not match")
 	ErrorEmptyField           = errors.New("Empty field")
-	ErrorInvalidPostTtitleLen = errors.New("the title should be 5 - 20 characters in length")
-	ErrorInvalidPostBodyLen   = errors.New("the body  should be 20 - 250 characters in length")
+	ErrorInvalidPostTtitleLen = errors.New("the title should be 5 - 50 characters in length")
+	ErrorInvalidPostBodyLen   = errors.New("the body  should be 20 - 2000 characters in length")
 	ErrorInvalidUUID          = errors.New("invalid uuid")
 )
 
@@ -114,10 +114,10 @@ func ValidateCreatePostInput(post schemas.CreatePost) error {
 	title := strings.TrimSpace(post.Title)
 	body := strings.TrimSpace(post.Body)
 
-	if len(title) > 20 && len(title) < 5 {
+	if len(title) > 50 && len(title) < 5 {
 		return ErrorInvalidPostTtitleLen
 	}
-	if len(body) < 20 && len(body) > 250 {
+	if len(body) < 20 && len(body) > 2000 {
 		return ErrorInvalidPostBodyLen
 	}
 	return nil
@@ -127,7 +127,7 @@ func ValidatePostTitle(title string) (bool, string) {
 	title = strings.TrimSpace(title)
 
 	if len(title) > 20 || len(title) < 5 {
-		return false, "Post title should be at least 5 and at most 20 characters"
+		return false, "Post title should be at least 5 and at most 50 characters"
 	}
 	return true, "success"
 }
@@ -136,18 +136,26 @@ func ValidatePostBody(body string) (bool, string) {
 	body = strings.TrimSpace(body)
 
 	if len(body) < 20 || len(body) > 250 {
-		return false, "Post content should be at least 20 and at most 250 characters"
+		return false, "Post content should be at least 20 and at most 2000 characters"
 	}
 	return true, "success"
 }
+
+func ValidateCategoryLen(categories []string) (bool, string) {
+	if len(categories) < 1 {
+		return false, "Post should has at least one category"
+	}
+	return true, "success"
+}
+
 func ValidateUpdatePostInput(post schemas.UpdatePost) error {
 	title := strings.TrimSpace(post.CreatePost.Title)
 	body := strings.TrimSpace(post.CreatePost.Body)
 
-	if len(title) > 20 && len(title) < 5 {
+	if len(title) > 50 && len(title) < 5 {
 		return ErrorInvalidPostTtitleLen
 	}
-	if len(body) < 20 && len(body) > 250 {
+	if len(body) < 20 && len(body) > 2000 {
 		return ErrorInvalidPostBodyLen
 	}
 	return nil

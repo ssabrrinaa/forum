@@ -41,20 +41,31 @@
         <div>
             <label class="error">{{.TemplatePostForm.PostErrors.Title}}</label>
             <label>Title:</label>
-            <input type='text' name='title' value="{{.TemplatePostForm.PostDataForErr.Title}}">
+            <input type='text' name='title' value="{{.TemplatePostForm.PostDataForErr.Title}}" maxlength="50">
         </div>
         <div>
             <label class="error">{{.TemplatePostForm.PostErrors.Body}}</label>
             <label>Content:</label>
-            <textarea name="content" maxlength="2000">{{.TemplatePostForm.PostDataForErr.Body}}</textarea>
+            <textarea name="body" maxlength="2000">{{.TemplatePostForm.PostDataForErr.Body}}</textarea>
+        </div>
+        <div>
+            <label class="error">{{.TemplatePostForm.PostErrors.Category}}</label>
+            <label>Category:</label>
+            {{range .Categories}}
+            <div class="ctg">
+                <input type="checkbox" name="categories" value="{{.Name}}">
+                <label>{{.Name}}</label>
+            </div>
+            {{end}}
         </div>
         <div>
             <input type="submit" value="Publish post">
         </div>
+        
         {{else}}
         <div>
             <label>Title:</label>
-            <input type='text' name='title' value="">
+            <input type='text' name='title' value="" maxlength="50">
         </div>
         <div>
 

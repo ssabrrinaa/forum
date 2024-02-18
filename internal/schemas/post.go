@@ -35,21 +35,23 @@ type GetPostResponse struct {
 }
 
 type Data struct {
-	Session *models.Session
-	Post    *GetPostResponse
-	Posts   []*GetPostResponse
+	Session    *models.Session
+	Post       *GetPostResponse
+	Posts      []*GetPostResponse
 	// Comments   []*schemas.Comment
 	Categories []*Category
 	// Error Error
 }
+
 type PostDataForErr struct {
 	Title string
 	Body  string
 }
 
 type PostErrors struct {
-	Title string
-	Body  string
+	Title    string
+	Body     string
+	Category string
 }
 
 type TemplatePostForm struct {

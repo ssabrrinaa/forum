@@ -56,32 +56,40 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 			} else {
 				title := r.FormValue("title")
 				body := r.FormValue("body")
+				categories := r.PostForm["categories"]
 
 				titleOk, msgTitle := validator.ValidatePostTitle(title)
 				bodyOk, msgBody := validator.ValidatePostBody(body)
+				categoryOk, msgCategory := validator.ValidateCategoryLen(categories)
 				fmt.Println(len(title))
 				fmt.Println(title)
 				fmt.Println(len(body))
 				fmt.Println(body)
-				if !titleOk || !bodyOk {
+				if !titleOk || !bodyOk || !categoryOk {
+					fmt.Println("Post should has at least one category")
 					createPostForm.TemplatePostForm = &schemas.TemplatePostForm{}
 					if !titleOk {
 						createPostForm.TemplatePostForm.PostErrors.Title = msgTitle
-						createPostForm.TemplatePostForm.PostDataForErr.Title = title
 					}
 
 					if !bodyOk {
 						createPostForm.TemplatePostForm.PostErrors.Body = msgBody
-						createPostForm.TemplatePostForm.PostDataForErr.Body = body
 					}
 
+					if !categoryOk {
+						createPostForm.TemplatePostForm.PostErrors.Category = msgCategory
+					}
+
+					createPostForm.TemplatePostForm.PostDataForErr.Title = title
+					createPostForm.TemplatePostForm.PostDataForErr.Body = body
+
 				}
-				if titleOk && bodyOk {
+				if titleOk && bodyOk && categoryOk {
 					post := schemas.CreatePost{
 						Title:      title,
 						Body:       body,
 						Image:      "/dgf/dfg",
-						Categories: r.PostForm["categories"],
+						Categories: categories,
 					}
 
 					err = ah.PostService.CreatePost(session.UserID, post)
@@ -96,7 +104,7 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		t, err := template.ParseFiles("ui/templates/create.html") // different html
+		t, err := template.ParseFiles("ui/templates/create.html")
 		if err != nil {
 			dataErr := exceptions.NewInternalServerError()
 			params := cust_encoders.EncodeParams(dataErr)
@@ -110,7 +118,6 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 	params := cust_encoders.EncodeParams(dataErr)
 	http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 	return
-
 }
 
 //
