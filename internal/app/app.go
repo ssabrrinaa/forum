@@ -26,6 +26,11 @@ func Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	err = database.RemoveSessions(config)
+	if err != nil {
+		log.Fatal(err)
+	}
 	repo := repository.NewRepository(db)
 	service := service.NewService(repo)
 	handler := handler.NewHandler(service)

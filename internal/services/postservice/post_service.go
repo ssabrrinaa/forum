@@ -26,7 +26,7 @@ type PostServiceI interface {
 	CreatePost(user_id uuid.UUID, postCreate schemas.CreatePost) error
 	UpdatePost(user_id uuid.UUID, postCreate schemas.UpdatePost) error
 	GetPost(post_id uuid.UUID) (*schemas.GetPostResponse, error)
-	GetPostsAll() ([]*schemas.GetPostResponse, error)
+	GetPostsAll(category string) ([]*schemas.GetPostResponse, error)
 	GetMyPosts(userID uuid.UUID) ([]*schemas.GetPostResponse, error)
 	GetAllCategories() ([]*schemas.Category, error)
 }
@@ -92,7 +92,7 @@ func (as *PostService) GetPost(post_id uuid.UUID) (*schemas.GetPostResponse, err
 	if err != nil {
 		return nil, exceptions.NewInternalServerError()
 	}
-	
+
 	// get comments and likes
 
 	return &schemas.GetPostResponse{
@@ -107,7 +107,7 @@ func (as *PostService) GetPost(post_id uuid.UUID) (*schemas.GetPostResponse, err
 	}, nil
 }
 
-func (as *PostService) GetPostsAll() ([]*schemas.GetPostResponse, error) {
+func (as *PostService) GetPostsAll(category string) ([]*schemas.GetPostResponse, error) {
 	var getPostsAllResponse []*schemas.GetPostResponse
 
 	posts, err := as.PostRepo.GetPostsAll()
@@ -121,12 +121,25 @@ func (as *PostService) GetPostsAll() ([]*schemas.GetPostResponse, error) {
 			return nil, exceptions.NewInternalServerError()
 		}
 
+		if category != "" {
+			categoryFound := false
+			for _, cat := range categories {
+				if cat == category {
+					categoryFound = true
+					break
+				}
+			}
+			if !categoryFound {
+				continue
+			}
+		}
+
 		user, err := as.AuthRepo.GetUserByUserID(post.UserId)
 		if err != nil {
 			return nil, exceptions.NewInternalServerError()
 		}
 
-		getPostsAllResponse = append(getPostsAllResponse, &schemas.GetPostResponse{
+		response := &schemas.GetPostResponse{
 			Username:   user.Username,
 			PostID:     post.ID,
 			CreatedAt:  post.CreatedAt,
@@ -135,14 +148,15 @@ func (as *PostService) GetPostsAll() ([]*schemas.GetPostResponse, error) {
 			PostBody:   post.Body,
 			PostImage:  post.Image,
 			Categories: categories,
-		})
+		}
+
+		getPostsAllResponse = append(getPostsAllResponse, response)
 	}
 
 	// You may want to get comments and likes here
 
 	return getPostsAllResponse, nil
 }
-
 func (as *PostService) GetMyPosts(userID uuid.UUID) ([]*schemas.GetPostResponse, error) {
 	var getMyPostsResponse []*schemas.GetPostResponse
 

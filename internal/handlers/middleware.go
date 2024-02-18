@@ -2,10 +2,10 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"net/http"
+
 	"forum/internal/exceptions"
 	"forum/pkg/cust_encoders"
-	"net/http"
 )
 
 func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
@@ -46,16 +46,26 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 		} else {
 			if sessionErr == nil {
 				if r.URL.Path == "/signin" {
-					if session.Token == cookie.Value {
+					if cookieErr != nil {
+						err := h.AuthHandler.AuthService.DeleteSession()
+						if err != nil {
+							params := cust_encoders.EncodeParams(err)
+							if err != nil {
+								http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+								return
+							}
+						}
+					} else if session.Token == cookie.Value {
 						http.Redirect(w, r, "/post/", http.StatusSeeOther)
 						return
-					}
-					err := h.AuthHandler.AuthService.DeleteSession()
-					if err != nil {
-						params := cust_encoders.EncodeParams(err)
+					} else {
+						err := h.AuthHandler.AuthService.DeleteSession()
 						if err != nil {
-							http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-							return
+							params := cust_encoders.EncodeParams(err)
+							if err != nil {
+								http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+								return
+							}
 						}
 					}
 					ctx = r.Context()
