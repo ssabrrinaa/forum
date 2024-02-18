@@ -163,7 +163,7 @@ func ValidateUpdatePostInput(post schemas.UpdatePost) error {
 
 func ValidatePasswordConfirmed(password, PasswordConfirm string) (bool, string) {
 	if password != PasswordConfirm {
-		return false, "Password do not match"
+		return false, "Passwords do not match"
 	}
 
 	return true, "success"

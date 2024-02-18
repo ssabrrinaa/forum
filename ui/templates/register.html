@@ -33,22 +33,22 @@
             <div>
                 <label class="error">{{.TemplateForm.RegisterErrors.Name}}</label>
                 <label>Name:</label>
-                <input type="text" name="name" value="{{.Form.RegisterDataForErr.Name}}" />
+                <input type="text" name="username" value="{{.TemplateForm.RegisterDataForErr.Name}}" />
             </div>
             <div>
                 <label class="error">{{.TemplateForm.RegisterErrors.Email}}</label>
                 <label>Email:</label>
-                <input type="email" name="email" value="{{.Form.RegisterDataForErr.Email}}" />
+                <input type="email" name="email" value="{{.TemplateForm.RegisterDataForErr.Email}}" />
             </div>
             <div>
                 <label class="error">{{.TemplateForm.RegisterErrors.Password}}</label>
                 <label>Password:</label>
-                <input type="password" name="password" value="{{.Form.RegisterDataForErr.Password}}" />
+                <input type="password" name="password" value="{{.TemplateForm.RegisterDataForErr.Password}}" />
             </div>
             <div>
                 <label class="error">{{.TemplateForm.RegisterErrors.ConfirmPassword}}</label>
                 <label>Confirm Password:</label>
-                <input type="password" name="password" value="{{.Form.RegisterDataForErr.Password}}" />
+                <input type="password" name="password_confirm" value="{{.TemplateForm.RegisterDataForErr.Password}}" />
             </div>
             {{else}}
             <form action="/register" method="POST" novalidate>

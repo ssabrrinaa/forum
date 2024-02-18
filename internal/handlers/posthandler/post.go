@@ -61,10 +61,7 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 				titleOk, msgTitle := validator.ValidatePostTitle(title)
 				bodyOk, msgBody := validator.ValidatePostBody(body)
 				categoryOk, msgCategory := validator.ValidateCategoryLen(categories)
-				fmt.Println(len(title))
-				fmt.Println(title)
-				fmt.Println(len(body))
-				fmt.Println(body)
+
 				if !titleOk || !bodyOk || !categoryOk {
 					fmt.Println("Post should has at least one category")
 					createPostForm.TemplatePostForm = &schemas.TemplatePostForm{}
