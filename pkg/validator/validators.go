@@ -20,25 +20,84 @@ var (
 	ErrorInvalidUUID          = errors.New("invalid uuid")
 )
 
-// следует ли эту функцию сделать методом для user?
-func ValidateRegisterInput(user schemas.CreateUser) error {
-	if user.Username == "" || user.Email == "" || user.Password == "" || user.PasswordConfirm == "" {
-		return ErrorEmptyField
-	}
-	if !validateEmail(user.Email) {
-		return ErrorInvalidEmail
+func ValidateName(userName string) (bool, string) {
+	if userName == "" {
+		return false, "User name should not be empty"
 	}
 
-	// if err := validatePassword(user.Password); err != nil {
-	// 	return ErrorInvalidPassword
-	// }
-
-	if !validatePasswordConfirmed(user.Password, user.PasswordConfirm) {
-		return ErrorPasswordMatch
+	if len(userName) < 5 {
+		return false, "User name length should be at least 5 characters"
 	}
 
-	return nil
+	return true, "success"
 }
+
+func ValidateEmail(userEmail string) (bool, string) {
+	if userEmail == "" {
+		return false, "User email should not be empty"
+	}
+
+	if !validateEmail(userEmail) {
+		return false, "User email contains incorrect characters"
+	}
+
+	return true, "success"
+}
+
+func validateEmail(e string) bool {
+	emailRegex := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	return emailRegex.MatchString(e)
+}
+
+func ValidatePassword(password string) (bool, string) {
+	if password == "" {
+		return false, "User password should not be empty"
+	}
+
+	if len(password) < 8 {
+		return false, "User password should contain at least 8 characters"
+	}
+
+	hasUpper := false
+	hasLower := false
+	hasDigit := false
+
+	for _, char := range password {
+		switch {
+		case unicode.IsUpper(char):
+			hasUpper = true
+		case unicode.IsLower(char):
+			hasLower = true
+		case unicode.IsDigit(char):
+			hasDigit = true
+		}
+	}
+
+	if !hasUpper || !hasLower || !hasDigit || !validateSpecialChar(password) {
+		return false, "User password should contain at least one upper, lower, digit and special characters"
+	}
+
+	return true, "success"
+}
+
+//func ValidateRegisterInput(user schemas.CreateUser) error {
+//	if user.Username == "" || user.Email == "" || user.Password == "" || user.PasswordConfirm == "" {
+//		return ErrorEmptyField
+//	}
+//	if !validateEmail(user.Email) {
+//		return ErrorInvalidEmail
+//	}
+//
+//	// if err := validatePassword(user.Password); err != nil {
+//	// 	return ErrorInvalidPassword
+//	// }
+//
+//	if !validatePasswordConfirmed(user.Password, user.PasswordConfirm) {
+//		return ErrorPasswordMatch
+//	}
+//
+//	return nil
+//}
 
 func ValidateSignInInput(user schemas.AuthUser) error {
 	if user.Email == "" || user.Password == "" {
@@ -64,6 +123,23 @@ func ValidateCreatePostInput(post schemas.CreatePost) error {
 	return nil
 }
 
+func ValidatePostTitle(title string) (bool, string) {
+	title = strings.TrimSpace(title)
+
+	if len(title) > 20 || len(title) < 5 {
+		return false, "Post title should be at least 5 and at most 20 characters"
+	}
+	return true, "success"
+}
+
+func ValidatePostBody(body string) (bool, string) {
+	body = strings.TrimSpace(body)
+
+	if len(body) < 20 || len(body) > 250 {
+		return false, "Post content should be at least 20 and at most 250 characters"
+	}
+	return true, "success"
+}
 func ValidateUpdatePostInput(post schemas.UpdatePost) error {
 	title := strings.TrimSpace(post.CreatePost.Title)
 	body := strings.TrimSpace(post.CreatePost.Body)
@@ -77,38 +153,12 @@ func ValidateUpdatePostInput(post schemas.UpdatePost) error {
 	return nil
 }
 
-func validatePasswordConfirmed(password, PasswordConfirm string) bool {
+func ValidatePasswordConfirmed(password, PasswordConfirm string) (bool, string) {
 	if password != PasswordConfirm {
-		return false
-	}
-	return true
-}
-
-func validatePassword(password string) error {
-	if len(password) < 8 {
-		return ErrorInvalidPassword
+		return false, "Password do not match"
 	}
 
-	hasUpper := false
-	hasLower := false
-	hasDigit := false
-
-	for _, char := range password {
-		switch {
-		case unicode.IsUpper(char):
-			hasUpper = true
-		case unicode.IsLower(char):
-			hasLower = true
-		case unicode.IsDigit(char):
-			hasDigit = true
-		}
-	}
-
-	if !hasUpper || !hasLower || !hasDigit || !validateSpecialChar(password) {
-		return ErrorInvalidPassword
-	}
-
-	return nil
+	return true, "success"
 }
 
 func validateSpecialChar(password string) bool {
@@ -121,11 +171,6 @@ func validateSpecialChar(password string) bool {
 	}
 
 	return false
-}
-
-func validateEmail(e string) bool {
-	emailRegex := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-	return emailRegex.MatchString(e)
 }
 
 func ValidateUUID(input string) bool {

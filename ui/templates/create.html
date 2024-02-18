@@ -37,40 +37,16 @@
 </nav>
 <section>
     <form action='/post/create' method='POST' novalidate>
-        {{if .Form}}
+        {{if .TemplatePostForm}}
         <div>
-            {{with .Form.Errors.title}}
-            {{range .}}
-            <label class="error">{{.}}</label>
-            {{end}}
-            {{end}}
+            <label class="error">{{.TemplatePostForm.PostErrors.Title}}</label>
             <label>Title:</label>
-            <input type='text' name='title' value="{{.Form.DataForErr.Title}}">
+            <input type='text' name='title' value="{{.TemplatePostForm.PostDataForErr.Title}}">
         </div>
         <div>
-            {{with .Form.Errors.content}}
-            {{range .}}
-            <label class="error">{{.}}</label>
-            {{end}}
-            {{end}}
+            <label class="error">{{.TemplatePostForm.PostErrors.Body}}</label>
             <label>Content:</label>
-            <textarea name="content" maxlength="2000">{{.Form.DataForErr.Content}}</textarea>
-        </div>
-        <div>
-            <div>
-                {{with .Form.Errors.categories}}
-                {{range .}}
-                <label class="error">{{.}}</label>
-                {{end}}
-                {{end}}
-                <label>Category:</label>
-                {{range .Categories}}
-                <div class="ctg">
-                    <input type="checkbox" name="categories" value="{{.Name}}">
-                    <label>{{.Name}}</label>
-                </div>
-                {{end}}
-            </div>
+            <textarea name="content" maxlength="2000">{{.TemplatePostForm.PostDataForErr.Body}}</textarea>
         </div>
         <div>
             <input type="submit" value="Publish post">

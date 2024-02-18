@@ -34,16 +34,11 @@ type AuthServiceI interface {
 }
 
 func (as *AuthService) CreateUser(user schemas.CreateUser) error {
-	if err := validator.ValidateRegisterInput(user); err != nil {
-		return exceptions.NewValidationError()
-	}
 
 	hashedPassword, err := hashbcrypt.GenerateHashedPassword(user.Password)
 	if err != nil {
 		return exceptions.NewInternalServerError()
 	}
-	// как чекать если email уже сущетсвует в БД
-
 	userFromDb, _ := as.AuthRepo.GetUserByEmail(user.Email)
 	if userFromDb.Email == user.Email {
 		return exceptions.NewStatusConflicError()
@@ -110,17 +105,7 @@ func (as *AuthService) CheckUserPassword(passwordDB, password string) error {
 }
 
 func (as *AuthService) DeleteSession() error {
-	/*
-		get session
-		exists -> check the time
-		delete
-	*/
-	_, err := as.AuthRepo.GetSession()
-	if err != nil {
-		return exceptions.NewInternalServerError()
-	}
-
-	err = as.AuthRepo.DeleteSession()
+	err := as.AuthRepo.DeleteSession()
 	if err != nil {
 		return exceptions.NewInternalServerError()
 	}

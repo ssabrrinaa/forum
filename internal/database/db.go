@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"forum/internal/config"
 	"os"
 
@@ -50,6 +51,31 @@ func InsertInitialData(cfg config.Config) error {
 	}
 
 	_, err = db.Exec(string(stmts))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func RemoveSessions(cfg config.Config) error {
+	db, err := sql.Open(cfg.DriverDb, cfg.DsnDb)
+	if err != nil {
+		return err
+	}
+	var exists bool
+	query := "SELECT EXISTS (SELECT * FROM sessions)"
+	err = db.QueryRow(query).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		fmt.Println("Sessions table doesn't exist.")
+		return nil
+	}
+
+	_, err = db.Exec("DELETE FROM sessions")
 	if err != nil {
 		return err
 	}

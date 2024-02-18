@@ -38,10 +38,27 @@ type Data struct {
 	Session *models.Session
 	Post    *GetPostResponse
 	Posts   []*GetPostResponse
-	Form    *Form
 	// Comments   []*schemas.Comment
 	Categories []*Category
 	// Error Error
 }
+type PostDataForErr struct {
+	Title string
+	Body  string
+}
 
-type Form struct{}
+type PostErrors struct {
+	Title string
+	Body  string
+}
+
+type TemplatePostForm struct {
+	PostErrors     PostErrors
+	PostDataForErr PostDataForErr
+}
+
+type CreatePostForm struct {
+	TemplatePostForm *TemplatePostForm
+	Session          *models.Session
+	Categories       []*Category
+}

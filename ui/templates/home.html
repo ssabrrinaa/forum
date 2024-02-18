@@ -38,9 +38,9 @@
         <section>
           <h2>Latest Posts</h2>
           <div class="btn-group" role="group" aria-label="Categories">
-            <a class="btn btn-primary" href="/post">All</a>
+            <a class="btn btn-primary" href="/post/">All</a>
             {{range .Categories}}
-            <a class="btn btn-primary" href="/filterposts?category={{.Name}}">
+            <a class="btn btn-primary" href="/post/?category={{.Name}}">
               {{.Name}}
             </a>
             {{end}}

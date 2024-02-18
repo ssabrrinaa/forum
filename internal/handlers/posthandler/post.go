@@ -20,124 +20,198 @@ import (
 )
 
 func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
-	sessionValue := r.Context().Value("session")
+	if r.Method == http.MethodGet || r.Method == http.MethodPost {
+		sessionValue := r.Context().Value("session")
 
-	if sessionValue == nil {
-		dataErr := exceptions.NewInternalServerError()
-		params := cust_encoders.EncodeParams(dataErr)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
-	}
+		if sessionValue == nil {
+			dataErr := exceptions.NewInternalServerError()
+			params := cust_encoders.EncodeParams(dataErr)
+			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+			return
+		}
 
-	var toOk Session
-	_ = toOk
+		var toOk Session
+		_ = toOk
 
-	session, ok := sessionValue.(Session)
-	if !ok {
-		dataErr := exceptions.NewInternalServerError()
-		params := cust_encoders.EncodeParams(dataErr)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
-	}
-
-	if r.Method == http.MethodGet {
+		session, ok := sessionValue.(Session)
+		if !ok {
+			dataErr := exceptions.NewInternalServerError()
+			params := cust_encoders.EncodeParams(dataErr)
+			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+			return
+		}
 		categories, err := ah.PostService.GetAllCategories()
 		if err != nil {
 			params := cust_encoders.EncodeParams(err)
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		} else {
-			t, err := template.ParseFiles("ui/templates/create.html") // different html
-			if err != nil {
-				dataErr := exceptions.NewInternalServerError()
+		}
+		createPostForm := &schemas.CreatePostForm{}
+		createPostForm.Session = &session
+		createPostForm.Categories = categories
+		if r.Method == http.MethodPost {
+			if err := r.ParseForm(); err != nil {
+				dataErr := exceptions.NewBadRequestError()
 				params := cust_encoders.EncodeParams(dataErr)
 				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-				return
-			}
-			resp := &schemas.Data{
-				Session:    &session,
-				Categories: categories,
-			}
-			err = t.Execute(w, resp)
-			if err != nil {
-				dataErr := exceptions.NewInternalServerError()
-				params := cust_encoders.EncodeParams(dataErr)
-				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-				return
+			} else {
+				title := r.FormValue("title")
+				body := r.FormValue("body")
+
+				titleOk, msgTitle := validator.ValidatePostTitle(title)
+				bodyOk, msgBody := validator.ValidatePostBody(body)
+				fmt.Println(len(title))
+				fmt.Println(title)
+				fmt.Println(len(body))
+				fmt.Println(body)
+				if !titleOk || !bodyOk {
+					createPostForm.TemplatePostForm = &schemas.TemplatePostForm{}
+					if !titleOk {
+						createPostForm.TemplatePostForm.PostErrors.Title = msgTitle
+						createPostForm.TemplatePostForm.PostDataForErr.Title = title
+					}
+
+					if !bodyOk {
+						createPostForm.TemplatePostForm.PostErrors.Body = msgBody
+						createPostForm.TemplatePostForm.PostDataForErr.Body = body
+					}
+
+				}
+				if titleOk && bodyOk {
+					post := schemas.CreatePost{
+						Title:      title,
+						Body:       body,
+						Image:      "/dgf/dfg",
+						Categories: r.PostForm["categories"],
+					}
+
+					err = ah.PostService.CreatePost(session.UserID, post)
+					if err != nil {
+						params := cust_encoders.EncodeParams(err)
+						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+						return
+					}
+					http.Redirect(w, r, "/post", http.StatusSeeOther)
+					return
+				}
 			}
 		}
-	} else if r.Method == http.MethodPost {
-		if err := r.ParseForm(); err != nil {
-			dataErr := exceptions.NewBadRequestError()
+
+		t, err := template.ParseFiles("ui/templates/create.html") // different html
+		if err != nil {
+			dataErr := exceptions.NewInternalServerError()
 			params := cust_encoders.EncodeParams(dataErr)
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		} else {
-			// file, header, err := r.FormFile("file")
-			// if err != nil {
-			// 	log.Fatal(err)
-			// }
-
-			// defer file.Close()
-
-			// ext := filepath.Ext(header.Filename)
-			// if !constants.IsAllowedFileExtension(ext) {
-			// 	log.Println("Error: File extension not allowed.")
-			// 	http.Error(w, "Unsupported file type", http.StatusBadRequest)
-			// 	return
-			// }
-
-			// imageFilename := uuid.Must(uuid.NewV4()).String() + ext
-			// uploadDir := constants.UploadDir
-			// if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-			// 	os.Mkdir(uploadDir, os.ModePerm)
-			// }
-			// filePath := filepath.Join(uploadDir, imageFilename)
-			// newFile, err := os.Create(filePath)
-			// if err != nil {
-			// 	log.Fatal(err)
-			// 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			// 	return
-			// }
-			// defer newFile.Close()
-			// _, err = io.Copy(newFile, file)
-			// if err != nil {
-			// 	log.Fatal(err)
-			// 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			// 	return
-			// }
-
-			// categories, ok := r.Form["category"]
-			// if !ok{
-			// 	log.Fatal("error")
-			// }
-
-			post := schemas.CreatePost{
-				Title:      r.FormValue("title"),
-				Body:       r.FormValue("body"),
-				Image:      "/dgf/dfg",
-				Categories: r.PostForm["categories"],
-			}
-			err := validator.ValidateCreatePostInput(post)
-			if err != nil {
-				dataErr := exceptions.NewValidationError()
-				params := cust_encoders.EncodeParams(dataErr)
-				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-				return
-			}
-
-			err = ah.PostService.CreatePost(session.UserID, post)
-			if err != nil {
-				params := cust_encoders.EncodeParams(err)
-				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-				return
-			}
-			// needs to be redirected to the right page
-			http.Redirect(w, r, "/post", http.StatusSeeOther)
+			return
 		}
-	} else {
-		// method not allowed
-		fmt.Println("method not allowed") // handle the error properly
+		t.Execute(w, createPostForm)
+		return
 	}
+	dataErr := exceptions.NewStatusMethodNotAllowed()
+	params := cust_encoders.EncodeParams(dataErr)
+	http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+	return
+
 }
+
+//
+//	if r.Method == http.MethodGet {
+//		categories, err := ah.PostService.GetAllCategories()
+//		if err != nil {
+//			params := cust_encoders.EncodeParams(err)
+//			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+//		} else {
+//			t, err := template.ParseFiles("ui/templates/create.html") // different html
+//			if err != nil {
+//				dataErr := exceptions.NewInternalServerError()
+//				params := cust_encoders.EncodeParams(dataErr)
+//				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+//				return
+//			}
+//			resp := &schemas.Data{
+//				Session:    &session,
+//				Categories: categories,
+//			}
+//			err = t.Execute(w, resp)
+//			if err != nil {
+//				dataErr := exceptions.NewInternalServerError()
+//				params := cust_encoders.EncodeParams(dataErr)
+//				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+//				return
+//			}
+//		}
+//	} else if r.Method == http.MethodPost {
+//		if err := r.ParseForm(); err != nil {
+//			dataErr := exceptions.NewBadRequestError()
+//			params := cust_encoders.EncodeParams(dataErr)
+//			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+//		} else {
+//			// file, header, err := r.FormFile("file")
+//			// if err != nil {
+//			// 	log.Fatal(err)
+//			// }
+//
+//			// defer file.Close()
+//
+//			// ext := filepath.Ext(header.Filename)
+//			// if !constants.IsAllowedFileExtension(ext) {
+//			// 	log.Println("Error: File extension not allowed.")
+//			// 	http.Error(w, "Unsupported file type", http.StatusBadRequest)
+//			// 	return
+//			// }
+//
+//			// imageFilename := uuid.Must(uuid.NewV4()).String() + ext
+//			// uploadDir := constants.UploadDir
+//			// if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+//			// 	os.Mkdir(uploadDir, os.ModePerm)
+//			// }
+//			// filePath := filepath.Join(uploadDir, imageFilename)
+//			// newFile, err := os.Create(filePath)
+//			// if err != nil {
+//			// 	log.Fatal(err)
+//			// 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+//			// 	return
+//			// }
+//			// defer newFile.Close()
+//			// _, err = io.Copy(newFile, file)
+//			// if err != nil {
+//			// 	log.Fatal(err)
+//			// 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+//			// 	return
+//			// }
+//
+//			// categories, ok := r.Form["category"]
+//			// if !ok{
+//			// 	log.Fatal("error")
+//			// }
+//
+//			post := schemas.CreatePost{
+//				Title:      r.FormValue("title"),
+//				Body:       r.FormValue("body"),
+//				Image:      "/dgf/dfg",
+//				Categories: r.PostForm["categories"],
+//			}
+//			err := validator.ValidateCreatePostInput(post)
+//			if err != nil {
+//				dataErr := exceptions.NewValidationError()
+//				params := cust_encoders.EncodeParams(dataErr)
+//				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+//				return
+//			}
+//
+//			err = ah.PostService.CreatePost(session.UserID, post)
+//			if err != nil {
+//				params := cust_encoders.EncodeParams(err)
+//				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+//				return
+//			}
+//			// needs to be redirected to the right page
+//			http.Redirect(w, r, "/post", http.StatusSeeOther)
+//		}
+//	} else {
+//		// method not allowed
+//		fmt.Println("method not allowed") // handle the error properly
+//	}
+//}
 
 func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 	sessionValue := r.Context().Value("session")
@@ -339,30 +413,17 @@ func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
-
+	var session *Session
 	sessionValue := r.Context().Value("session")
-
-	if sessionValue == nil {
-		dataErr := exceptions.NewInternalServerError()
-		params := cust_encoders.EncodeParams(dataErr)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
+	fmt.Println(sessionValue)
+	if sessionValue != nil {
+		sessionVal, ok := sessionValue.(Session)
+		if ok {
+			session = &sessionVal
+		}
 	}
 
-	session, ok := sessionValue.(Session)
-	if !ok {
-		dataErr := exceptions.NewInternalServerError()
-		params := cust_encoders.EncodeParams(dataErr)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
-	}
-
-	getPostAllResponse, err := ah.PostService.GetPostsAll()
-	if err != nil {
-		params := cust_encoders.EncodeParams(err)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
-	}
+	category := r.URL.Query().Get("category")
 
 	categories, err := ah.PostService.GetAllCategories()
 	if err != nil {
@@ -371,8 +432,15 @@ func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	getPostAllResponse, err := ah.PostService.GetPostsAll(category)
+	if err != nil {
+		params := cust_encoders.EncodeParams(err)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
+
 	resp := &schemas.Data{
-		Session:    &session,
+		Session:    session,
 		Posts:      getPostAllResponse,
 		Categories: categories,
 	}
