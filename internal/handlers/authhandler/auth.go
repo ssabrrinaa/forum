@@ -31,27 +31,28 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 				passwordOk, msgPassword := validator.ValidatePassword(password)
 
 				confirmPasswordOk, msgConfirmedPassword := validator.ValidatePasswordConfirmed(password, confirmPassword)
-
+				fmt.Println(password)
+				fmt.Println(confirmPassword)
 				if !nameOk || !emailOk || !passwordOk || !confirmPasswordOk {
 					registerForm.TemplateForm = &schemas.TemplateForm{}
 					if !nameOk {
 						registerForm.TemplateForm.RegisterErrors.Name = msgName
-						registerForm.TemplateForm.DataForErr.Name = userName
 					}
 
 					if !emailOk {
 						registerForm.TemplateForm.RegisterErrors.Email = msgEmail
-						registerForm.TemplateForm.DataForErr.Email = email
 					}
 					if !passwordOk {
 						registerForm.TemplateForm.RegisterErrors.Password = msgPassword
-						registerForm.TemplateForm.DataForErr.Password = password
 					}
 
 					if !confirmPasswordOk {
 						registerForm.TemplateForm.RegisterErrors.ConfirmPassword = msgConfirmedPassword
-						registerForm.TemplateForm.DataForErr.ConfirmPassword = confirmPassword
 					}
+					registerForm.TemplateForm.RegisterDataForErr.Name = userName
+					registerForm.TemplateForm.RegisterDataForErr.Email = email
+					registerForm.TemplateForm.RegisterDataForErr.Password = password
+					registerForm.TemplateForm.RegisterDataForErr.ConfirmPassword = confirmPassword
 				}
 
 				if nameOk && emailOk && passwordOk && confirmPasswordOk {

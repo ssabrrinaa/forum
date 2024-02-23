@@ -8,9 +8,12 @@ import (
 )
 
 type CreatePost struct {
+	ID         uuid.UUID
 	Title      string
 	Body       string
 	Image      string
+	Likes      int
+	Dislikes   int
 	Categories []string
 }
 
@@ -28,16 +31,16 @@ type GetPostResponse struct {
 	PostBody   string
 	PostImage  string
 	Categories []string
-	Like       int
-	Dislike    int
+	Likes      int
+	Dislikes   int
 
 	// Comments
 }
 
 type Data struct {
-	Session    *models.Session
-	Post       *GetPostResponse
-	Posts      []*GetPostResponse
+	Session *models.Session
+	Post    *GetPostResponse
+	Posts   []*GetPostResponse
 	// Comments   []*schemas.Comment
 	Categories []*Category
 	// Error Error
@@ -64,3 +67,5 @@ type CreatePostForm struct {
 	Session          *models.Session
 	Categories       []*Category
 }
+
+type UpdatePostForm struct{}

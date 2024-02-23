@@ -20,7 +20,7 @@
                 <a class="navbutton" href="/post">Home</a>
                 {{if .Session}}
                 <a class="navbutton" href="/post/create">Create Post</a>
-                <a class="navbutton" href="/likeposts">Liked Posts</a>
+                <a class="navbutton" href="/post/?liked=1">Liked Posts</a>
                 {{end}}
             </div>
             <div>
@@ -36,14 +36,18 @@
             </div>
         </nav>
         <section>
+            {{if .Categories}}
           <h2>Latest Posts</h2>
+           {{end}}
           <div class="btn-group" role="group" aria-label="Categories">
             <a class="btn btn-primary" href="/post/">All</a>
-            {{range .Categories}}
-            <a class="btn btn-primary" href="/post/?category={{.Name}}">
-              {{.Name}}
-            </a>
-            {{end}}
+              {{if .Categories}}
+                  {{range .Categories}}
+                  <a class="btn btn-primary" href="/post/?category={{.Name}}">
+                      {{.Name}}
+                  </a>
+                  {{end}}
+              {{end}}
           </div>
           {{if .Posts}}
           <table>

@@ -15,9 +15,10 @@ type RegisterErrors struct {
 }
 
 type TemplateForm struct {
-	RegisterErrors RegisterErrors
-	DataForErr     RegisterDataForErr
+	RegisterErrors     RegisterErrors
+	RegisterDataForErr RegisterDataForErr
 }
+
 type RegisterForm struct {
 	TemplateForm *TemplateForm
 }

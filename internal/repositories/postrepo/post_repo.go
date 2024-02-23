@@ -26,6 +26,10 @@ type PostRepoI interface {
 	GetMyPosts(userID uuid.UUID) ([]models.Post, error)
 	GetCategoriesByPostID(postID uuid.UUID) ([]string, error)
 	GetAllCategories() ([]*models.Category, error)
+	GetVoteOfPost(postID uuid.UUID, userID uuid.UUID) (models.Vote, error)
+	DeleteVoteOfPost(voteID uuid.UUID) error
+	CreateVote(vote models.Vote) error
+	GetVotes() ([]models.Vote, error)
 }
 
 func (ar *PostRepo) CreatePostCategories(input models.CreateCategoryPost) error {
@@ -41,10 +45,10 @@ func (ar *PostRepo) CreatePostCategories(input models.CreateCategoryPost) error 
 
 func (ar *PostRepo) CreatePost(post models.Post) error {
 	stmt := `
-		INSERT INTO posts (post_id, user_id, title, body, image) 
-		VALUES (?, ?, ?, ?, ?);
+		INSERT INTO posts (post_id, user_id, title, body, likes, dislikes, image) 
+		VALUES (?, ?, ?, ?, ?, ?, ?);
 	`
-	if _, err := ar.db.Exec(stmt, post.ID, post.UserId, post.Title, post.Body, post.Image); err != nil {
+	if _, err := ar.db.Exec(stmt, post.ID, post.UserId, post.Title, post.Body, post.Likes, post.Dislikes, post.Image); err != nil {
 		return err
 	}
 	return nil
@@ -53,10 +57,10 @@ func (ar *PostRepo) CreatePost(post models.Post) error {
 func (ar *PostRepo) UpdatePost(post models.Post) error {
 	stmt := `
 		UPDATE posts 
-		SET updated_at = CURRENT_TIMESTAMP, title = ?, body = ?, image = ? 
+		SET updated_at = CURRENT_TIMESTAMP, title = ?, body = ?, image = ?, likes = ?, dislikes = ? 
 		WHERE post_id = ?;
 	`
-	if _, err := ar.db.Exec(stmt, post.Title, post.Body, post.Image, post.ID); err != nil {
+	if _, err := ar.db.Exec(stmt, post.Title, post.Body, post.Image, post.Likes, post.Dislikes, post.ID); err != nil {
 		return err
 	}
 	return nil
@@ -72,13 +76,15 @@ func (ar *PostRepo) GetPost(postID uuid.UUID) (models.Post, error) {
 			user_id,
 			title,
 			body,
+			likes,
+			dislikes,
 			image
 		FROM posts
 		WHERE post_id = ?;
 	`
 	raw := ar.db.QueryRow(stmt, postID)
 
-	if err := raw.Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Image); err != nil {
+	if err := raw.Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Likes, &post.Dislikes, &post.Image); err != nil {
 		return post, err
 	}
 	return post, nil
@@ -94,6 +100,8 @@ func (ar *PostRepo) GetPostsAll() ([]models.Post, error) {
 			user_id,
 			title,
 			body,
+			likes,
+			dislikes,
 			image
 		FROM posts;
 	`
@@ -106,7 +114,7 @@ func (ar *PostRepo) GetPostsAll() ([]models.Post, error) {
 
 	for rows.Next() {
 		var post models.Post
-		if err := rows.Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Image); err != nil {
+		if err := rows.Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Likes, &post.Dislikes, &post.Image); err != nil {
 			return nil, err
 		}
 		posts = append(posts, post)
@@ -189,6 +197,8 @@ func (ar *PostRepo) GetMyPosts(userID uuid.UUID) ([]models.Post, error) {
 			user_id,
 			title,
 			body,
+			likes,
+			dislikes,
 			image
 		FROM posts
 		WHERE user_id = ?;
@@ -202,7 +212,7 @@ func (ar *PostRepo) GetMyPosts(userID uuid.UUID) ([]models.Post, error) {
 
 	for rows.Next() {
 		var post models.Post
-		if err := rows.Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Image); err != nil {
+		if err := rows.Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt, &post.UserId, &post.Title, &post.Body, &post.Likes, &post.Dislikes, &post.Image); err != nil {
 			return nil, err
 		}
 		posts = append(posts, post)
@@ -213,4 +223,78 @@ func (ar *PostRepo) GetMyPosts(userID uuid.UUID) ([]models.Post, error) {
 	}
 
 	return posts, nil
+}
+func (ar *PostRepo) GetVoteOfPost(postID uuid.UUID, userID uuid.UUID) (models.Vote, error) {
+	var vote models.Vote
+	stmt := `
+		SELECT
+			vote_id,
+			user_id,
+			post_id,
+			binary
+		FROM votes
+		WHERE post_id = ?
+		  AND user_id = ?;
+	`
+	raw := ar.db.QueryRow(stmt, postID, userID)
+
+	if err := raw.Scan(&vote.ID, &vote.UserID, &vote.PostID, &vote.Binary); err != nil {
+		return vote, err
+	}
+	return vote, nil
+}
+
+func (ar *PostRepo) DeleteVoteOfPost(voteID uuid.UUID) error {
+	stmt := `
+		DELETE FROM votes
+		WHERE vote_id = ?;
+	`
+
+	if _, err := ar.db.Exec(stmt, voteID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ar *PostRepo) CreateVote(vote models.Vote) error {
+	stmt := `
+		INSERT INTO votes (vote_id, user_id, post_id, binary) 
+		VALUES (?, ?, ?, ?);
+	`
+	if _, err := ar.db.Exec(stmt, vote.ID, vote.UserID, vote.PostID, vote.Binary); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ar *PostRepo) GetVotes() ([]models.Vote, error) {
+	var votes []models.Vote
+	stmt := `
+		SELECT
+			vote_id,
+			user_id,
+			post_id,
+			binary
+		FROM votes;
+	`
+
+	rows, err := ar.db.Query(stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var vote models.Vote
+		if err := rows.Scan(&vote.ID, &vote.UserID, &vote.PostID, &vote.Binary); err != nil {
+			return nil, err
+		}
+		votes = append(votes, vote)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return votes, nil
 }

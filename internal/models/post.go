@@ -14,5 +14,7 @@ type Post struct {
 	Title      string
 	Body       string
 	Image      string
+	Likes      int
+	Dislikes   int
 	Categories []*Category
 }

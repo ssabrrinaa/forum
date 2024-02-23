@@ -10,7 +10,7 @@ import (
 
 func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var ctx context.Context
+		var ctx = r.Context()
 		session, sessionErr := h.AuthHandler.AuthService.GetSession()
 		cookie, cookieErr := r.Cookie("session")
 		if _, exclude := h.ExcludeSessionHandlersPath[r.URL.Path]; !exclude {

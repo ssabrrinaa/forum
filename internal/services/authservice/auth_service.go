@@ -34,7 +34,6 @@ type AuthServiceI interface {
 }
 
 func (as *AuthService) CreateUser(user schemas.CreateUser) error {
-
 	hashedPassword, err := hashbcrypt.GenerateHashedPassword(user.Password)
 	if err != nil {
 		return exceptions.NewInternalServerError()
@@ -64,7 +63,7 @@ func (as *AuthService) CreateSession(user schemas.AuthUser) (models.Session, err
 
 	userDB, err := as.AuthRepo.GetUserByEmail(user.Email)
 	if err != nil {
-		return session, exceptions.NewInternalServerError()
+		return session, exceptions.NewStatusConflicError()
 	}
 
 	err = as.CheckUserPassword(userDB.HashedPassword, user.Password)
