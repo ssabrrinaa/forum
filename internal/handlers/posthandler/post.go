@@ -1,15 +1,15 @@
 package posthandler
 
 import (
-	"fmt"
 	"forum/internal/exceptions"
 	. "forum/internal/models"
 	"forum/internal/schemas"
 	"forum/pkg/cust_encoders"
 	"forum/pkg/validator"
-	"github.com/gofrs/uuid"
 	"html/template"
 	"net/http"
+
+	"github.com/gofrs/uuid"
 )
 
 func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +189,6 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 				},
 			}
 			vote, err := ah.PostService.GetVote(postIDArg, userID)
-			fmt.Println(vote)
 
 			voteCreate := schemas.CreateVote{
 				ShowVote: schemas.ShowVote{
@@ -391,7 +390,6 @@ func (ah *PostHandler) GetMyPosts(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/?p"+params, http.StatusSeeOther)
 		return
 	}
-	fmt.Println("sesion,", session)
 
 	getPostAllResponse, err := ah.PostService.GetMyPosts(session.UserID)
 	if err != nil {
@@ -415,14 +413,97 @@ func (ah *PostHandler) GetMyPosts(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, resp)
 }
 
-//comments are going to be here
+// comments are going to be here
 
-//func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
-//	if r.Method != http.MethodPost {
-//		dataErr := exceptions.NewStatusMethodNotAllowed()
-//		params := cust_encoders.EncodeParams(dataErr)
-//		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-//		return
-//	}
-//
-//}
+func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		dataErr := exceptions.NewStatusMethodNotAllowed()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
+	sessionValue := r.Context().Value("session")
+
+	if sessionValue == nil {
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
+
+	var toOk Session
+	_ = toOk
+
+	session, ok := sessionValue.(Session)
+	if !ok {
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
+	// categories, err := ah.PostService.GetAllCategories()
+	// if err != nil {
+	// 	params := cust_encoders.EncodeParams(err)
+	// 	http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+	// }
+	createCommentForm := &schemas.CreateCommentForm{}
+	createCommentForm.Session = &session
+	// createPostForm.Categories = categories
+	// if r.Method == http.MethodPost {
+	if err := r.ParseForm(); err != nil {
+		dataErr := exceptions.NewBadRequestError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+	} else {
+		content := r.FormValue("content")
+		postIDStr := r.Form.Get("post_id")
+		postID, err := uuid.FromString(postIDStr)
+		if err != nil {
+			dataErr := exceptions.NewInternalServerError()
+			params := cust_encoders.EncodeParams(dataErr)
+			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+			return
+		}
+		// commentOk, msgComment := validator.ValidatePostComment(content)
+
+		// if !commentOk {
+		// 	createCommentForm.TemplateCommentForm = &schemas.TemplateCommentForm{}
+		// 	createCommentForm.TemplateCommentForm.CommentErrors = msgComment
+		// 	createCommentForm.TemplateCommentForm.CommentDataForErr = content
+		// }
+
+		// if commentOk {
+		comment := schemas.CreateComment{
+			Content: content,
+			PostID:  postID,
+			UserID:  session.UserID,
+		}
+
+		err = ah.PostService.CreateComment(comment)
+		if err != nil {
+			params := cust_encoders.EncodeParams(err)
+			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+			return
+		}
+		http.Redirect(w, r, "/post/get?post_id="+postIDStr, http.StatusSeeOther)
+
+		return
+		// }
+	}
+	// }
+
+	t, err := template.ParseFiles("ui/templates/post.html")
+	if err != nil {
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
+	t.Execute(w, createCommentForm)
+	return
+	// 	}
+	// 	dataErr := exceptions.NewStatusMethodNotAllowed()
+	// 	params := cust_encoders.EncodeParams(dataErr)
+	// 	http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+	// 	return
+}

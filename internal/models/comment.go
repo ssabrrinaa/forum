@@ -1,10 +1,19 @@
 package models
 
-import "github.com/gofrs/uuid"
+import (
+	"time"
+
+	"github.com/gofrs/uuid"
+)
 
 type Comment struct {
 	ID          uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 	Description string
-	PostId      uuid.UUID
-	UserId      uuid.UUID
+	PostID      uuid.UUID
+	UserID      uuid.UUID
+	UserName    string
+	Like        int
+	Dislike     int
 }

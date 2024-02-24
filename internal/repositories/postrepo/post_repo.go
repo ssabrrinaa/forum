@@ -19,17 +19,22 @@ func NewPostRepo(db *sql.DB) *PostRepo {
 
 type PostRepoI interface {
 	CreatePost(post models.Post) error
-	CreatePostCategories(post models.CreateCategoryPost) error
+	CreatePostCategories(input models.CreateCategoryPost) error
 	UpdatePost(post models.Post) error
 	GetPost(postID uuid.UUID) (models.Post, error)
 	GetPostsAll() ([]models.Post, error)
 	GetMyPosts(userID uuid.UUID) ([]models.Post, error)
+
 	GetCategoriesByPostID(postID uuid.UUID) ([]string, error)
 	GetAllCategories() ([]*models.Category, error)
+
 	GetVoteOfPost(postID uuid.UUID, userID uuid.UUID) (models.Vote, error)
 	DeleteVoteOfPost(voteID uuid.UUID) error
 	CreateVote(vote models.Vote) error
 	GetVotes() ([]models.Vote, error)
+
+	CreateComment(comment models.Comment) error
+	GetCommentsByPostID(postID uuid.UUID) ([]*models.Comment, error)
 }
 
 func (ar *PostRepo) CreatePostCategories(input models.CreateCategoryPost) error {
@@ -224,6 +229,7 @@ func (ar *PostRepo) GetMyPosts(userID uuid.UUID) ([]models.Post, error) {
 
 	return posts, nil
 }
+
 func (ar *PostRepo) GetVoteOfPost(postID uuid.UUID, userID uuid.UUID) (models.Vote, error) {
 	var vote models.Vote
 	stmt := `
@@ -297,4 +303,53 @@ func (ar *PostRepo) GetVotes() ([]models.Vote, error) {
 	}
 
 	return votes, nil
+}
+
+func (ar *PostRepo) CreateComment(comment models.Comment) error {
+	stmt := `
+		INSERT INTO comments (comment_id, description, post_id, user_id) 
+		VALUES (?, ?, ?, ?);
+	`
+	if _, err := ar.db.Exec(stmt, comment.ID, comment.Description, comment.PostID, comment.UserID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ar *PostRepo) GetCommentsByPostID(postID uuid.UUID) ([]*models.Comment, error) {
+	var comments []*models.Comment
+	stmt := `
+		SELECT
+			c.comment_id,
+			c.created_at,
+			c.updated_at,
+			c.description,
+			c.post_id,
+			c.user_id,
+			u.username
+		FROM comments c
+		JOIN users u ON u.user_id = c.user_id 
+		WHERE c.post_id = ?
+		ORDER BY c.created_at asc;
+	`
+
+	rows, err := ar.db.Query(stmt, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var comment models.Comment
+		if err := rows.Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt, &comment.Description, &comment.PostID, &comment.UserID, &comment.UserName); err != nil {
+			return nil, err
+		}
+		comments = append(comments, &comment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return comments, nil
 }

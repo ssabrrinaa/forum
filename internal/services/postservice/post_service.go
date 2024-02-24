@@ -2,7 +2,6 @@ package postservice
 
 import (
 	"errors"
-	"fmt"
 	"forum/internal/exceptions"
 	"forum/internal/models"
 	"forum/internal/repositories/authrepo"
@@ -26,15 +25,19 @@ func NewPostService(postRepo postrepo.PostRepoI, authrepo authrepo.AuthRepoI) *P
 
 type PostServiceI interface {
 	CreatePost(userID uuid.UUID, postCreate schemas.CreatePost) error
-	UpdatePost(userID uuid.UUID, postCreate schemas.UpdatePost) error
+	UpdatePost(userID uuid.UUID, postUpdate schemas.UpdatePost) error
 	GetPost(postID uuid.UUID) (*schemas.GetPostResponse, error)
 	GetPostsAll(category string) ([]*schemas.GetPostResponse, error)
 	GetMyPosts(userID uuid.UUID) ([]*schemas.GetPostResponse, error)
+
 	GetAllCategories() ([]*schemas.Category, error)
+
 	GetVote(postID uuid.UUID, userID uuid.UUID) (schemas.ShowVote, error)
 	DeleteVote(voteID uuid.UUID, postUpdate schemas.UpdatePost) error
-	CreateVote(postCreate schemas.CreateVote) error
+	CreateVote(voteCreate schemas.CreateVote) error
 	GetLikedPosts(userID uuid.UUID, posts []*schemas.GetPostResponse) ([]*schemas.GetPostResponse, error)
+
+	CreateComment(commentCreate schemas.CreateComment) error
 }
 
 func (as *PostService) CreatePost(userID uuid.UUID, postCreate schemas.CreatePost) error {
@@ -103,6 +106,11 @@ func (as *PostService) GetPost(postID uuid.UUID) (*schemas.GetPostResponse, erro
 		return nil, exceptions.NewInternalServerError()
 	}
 
+	comments, err := as.PostRepo.GetCommentsByPostID(postID)
+	if err != nil {
+		return nil, exceptions.NewInternalServerError()
+	}
+
 	// get comments and likes
 
 	return &schemas.GetPostResponse{
@@ -116,6 +124,7 @@ func (as *PostService) GetPost(postID uuid.UUID) (*schemas.GetPostResponse, erro
 		Dislikes:   post.Dislikes,
 		PostImage:  post.Image,
 		Categories: categories,
+		Comments:   comments,
 	}, nil
 }
 
@@ -134,7 +143,6 @@ func (as *PostService) GetVote(postID uuid.UUID, userID uuid.UUID) (schemas.Show
 }
 
 func (as *PostService) DeleteVote(voteID uuid.UUID, postUpdate schemas.UpdatePost) error {
-	fmt.Println(voteID)
 	err := as.PostRepo.DeleteVoteOfPost(voteID)
 	if err != nil {
 		return err
@@ -148,7 +156,6 @@ func (as *PostService) DeleteVote(voteID uuid.UUID, postUpdate schemas.UpdatePos
 		Dislikes: postUpdate.Dislikes,
 	}
 	err = as.PostRepo.UpdatePost(post)
-	fmt.Println("dsa")
 	return err
 }
 
@@ -286,4 +293,33 @@ func (as *PostService) GetAllCategories() ([]*schemas.Category, error) {
 	}
 
 	return categoriesResp, nil
+}
+
+func (as *PostService) CreateComment(commentCreate schemas.CreateComment) error {
+	commentID := uuid.Must(uuid.NewV4())
+
+	comment := models.Comment{
+		ID:          commentID,
+		UserID:      commentCreate.UserID,
+		Description: commentCreate.Content,
+		PostID:      commentCreate.PostID,
+	}
+	err := as.PostRepo.CreateComment(comment)
+	if err != nil {
+		return exceptions.NewInternalServerError()
+	}
+
+	// for _, category := range postCreate.Categories {
+	// 	err := as.PostRepo.CreatePostCategories(models.CreateCategoryPost{
+	// 		ID:           uuid.Must(uuid.NewV4()),
+	// 		CategoryName: category,
+	// 		PostID:       postID,
+	// 	})
+	// 	if err != nil {
+	// 		return exceptions.NewInternalServerError()
+	// 	}
+
+	// }
+
+	return nil
 }

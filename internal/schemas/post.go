@@ -33,17 +33,15 @@ type GetPostResponse struct {
 	Categories []string
 	Likes      int
 	Dislikes   int
-
-	// Comments
+	Comments   []*models.Comment
 }
 
 type Data struct {
-	Session *models.Session
-	Post    *GetPostResponse
-	Posts   []*GetPostResponse
-	// Comments   []*schemas.Comment
-	Categories []*Category
-	// Error Error
+	Session             *models.Session
+	Post                *GetPostResponse
+	Posts               []*GetPostResponse
+	Categories          []*Category
+	TemplateCommentForm *TemplateCommentForm
 }
 
 type PostDataForErr struct {

@@ -76,7 +76,8 @@
                 <div class="comments_create">
                     <form method="POST" action="/comment/create">
                         <input type="hidden" name="post_id" value={{.Post.PostID}}>
-                        {{if .Form}}
+                        {{if .TemplateCommentForm}}
+                 
                         {{with .Form.Errors.content}}
                         {{range .}}
                         <label class="error">{{.}}</label>
@@ -95,26 +96,26 @@
                     </form>
                 </div>
                 {{end}}
-                {{range .Comments}}
+                {{range .Post.Comments}}
                 <div class="comments_show">
                     <div class='comment'>
                         <b>{{.UserName}}</b>
                     </div>
-                    <pre><code>{{.Content}}</code></pre>
-                    <div id="{{.Id}}" class='comment'>
+                    <pre><code>{{.Description}}</code></pre>
+                    <div id="{{.ID}}" class='comment'>
                         <span>
-                            <form method="POST" action="/comment/vote/create#{{.Id}}">
+                            <form method="POST" action="/comment/vote/create#{{.ID}}">
                                 <input type="hidden" name="post_id" value="{{.PostID}}">
-                                <input type="hidden" name="comment_id" value="{{.Id}}">
+                                <input type="hidden" name="comment_id" value="{{.ID}}">
                                 <input type="hidden" name="vote" value=1>
                                 <button type="submit"><img src="/static/img/like.png" style="width: 25px ;"
                                         alt="like button"> {{.Like}}</button>
                             </form>
                         </span>
                         <span>
-                            <form method="POST" action="/comment/vote/create#{{.Id}}">
+                            <form method="POST" action="/comment/vote/create#{{.ID}}">
                                 <input type="hidden" name="post_id" value="{{.PostID}}">
-                                <input type="hidden" name="comment_id" value="{{.Id}}">
+                                <input type="hidden" name="comment_id" value="{{.ID}}">
                                 <input type="hidden" name="vote" value=-1>
                                 <button type="submit"><img src="/static/img/dislike.png" style="width: 25px ;"
                                         alt="dislike button"> {{.Dislike}}</button>
@@ -122,7 +123,7 @@
                         </span>
 
                         <div class="time-post">
-                            {{.CreateAt.Format "02/01/2006 15:04"}}
+                            {{.CreatedAt.Format "02/01/2006 15:04"}}
                         </div>
                     </div>
                 </div>

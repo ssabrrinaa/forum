@@ -141,6 +141,15 @@ func ValidatePostBody(body string) (bool, string) {
 	return true, "success"
 }
 
+func ValidatePostComment(body string) (bool, string) {
+	body = strings.TrimSpace(body)
+
+	if len(body) < 5 || len(body) > 250 {
+		return false, "Post comment should be at least 5 and at most 250 characters"
+	}
+	return true, "success"
+}
+
 func ValidateCategoryLen(categories []string) (bool, string) {
 	if len(categories) < 1 {
 		return false, "Post should has at least one category"
