@@ -55,45 +55,45 @@ func (e BaseError) Error() string {
 	return fmt.Sprintf("%v %v", e.StatusCode, e.Message)
 }
 
-func NewValidationError() ValidationError {
+func NewValidationError(msg string) ValidationError {
 	return ValidationError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
 				StatusCode: 422,
-				Message:    fmt.Sprintf("%v", HTTPStatusCodes[422]),
+				Message:    fmt.Sprintf("%v | %v", HTTPStatusCodes[422], msg),
 			},
 		},
 	}
 }
 
-func NewAuthenticationError() AuthenticationError {
+func NewAuthenticationError(msg string) AuthenticationError {
 	return AuthenticationError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
 				StatusCode: 401,
-				Message:    fmt.Sprintf("%v", HTTPStatusCodes[401]),
+				Message:    fmt.Sprintf("%v | %v", HTTPStatusCodes[401], msg),
 			},
 		},
 	}
 }
 
-func NewResourceNotFoundError() ResourceNotFoundError {
+func NewResourceNotFoundError(msg string) ResourceNotFoundError {
 	return ResourceNotFoundError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
 				StatusCode: 404,
-				Message:    fmt.Sprintf("%v", HTTPStatusCodes[404]),
+				Message:    fmt.Sprintf("%v | %v", HTTPStatusCodes[404], msg),
 			},
 		},
 	}
 }
 
-func NewBadRequestError() BadRequestError {
+func NewBadRequestError(msg string) BadRequestError {
 	return BadRequestError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
 				StatusCode: 400,
-				Message:    fmt.Sprintf("%v", HTTPStatusCodes[400]),
+				Message:    fmt.Sprintf("%v | %v", HTTPStatusCodes[400], msg),
 			},
 		},
 	}
@@ -110,12 +110,12 @@ func NewStatusMethodNotAllowed() StatusMethodNotAllowed {
 	}
 }
 
-func NewStatusConflicError() StatusConflictError {
+func NewStatusConflicError(msg string) StatusConflictError {
 	return StatusConflictError{
 		ClientSideError: ClientSideError{
 			BaseError: BaseError{
 				StatusCode: 409,
-				Message:    fmt.Sprintf("%v", HTTPStatusCodes[409]),
+				Message:    fmt.Sprintf("%v | %v", HTTPStatusCodes[409], msg),
 			},
 		},
 	}

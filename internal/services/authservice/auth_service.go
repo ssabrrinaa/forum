@@ -40,7 +40,7 @@ func (as *AuthService) CreateUser(user schemas.CreateUser) error {
 	}
 	userFromDb, _ := as.AuthRepo.GetUserByEmail(user.Email)
 	if userFromDb.Email == user.Email {
-		return exceptions.NewStatusConflicError()
+		return exceptions.NewStatusConflicError("User is already present")
 	}
 	userModel := models.User{
 		ID:             uuid.Must(uuid.NewV4()),
@@ -58,22 +58,20 @@ func (as *AuthService) CreateUser(user schemas.CreateUser) error {
 func (as *AuthService) CreateSession(user schemas.AuthUser) (models.Session, error) {
 	session := models.Session{}
 	if err := validator.ValidateSignInInput(user); err != nil {
-		return session, exceptions.NewValidationError()
+		return session, exceptions.NewValidationError("")
 	}
 
 	userDB, err := as.AuthRepo.GetUserByEmail(user.Email)
 	if err != nil {
-		return session, exceptions.NewStatusConflicError()
+		return session, exceptions.NewStatusConflicError("User is already present")
 	}
 
 	err = as.CheckUserPassword(userDB.HashedPassword, user.Password)
 	if err != nil {
-		return session, exceptions.NewAuthenticationError()
+		return session, exceptions.NewAuthenticationError("Password is incorrect")
 	}
 
-	if err := as.AuthRepo.DeleteSession(); err != nil {
-		return session, exceptions.NewInternalServerError()
-	}
+	as.AuthRepo.DeleteSession()
 
 	session = models.Session{
 		ID:         uuid.Must(uuid.NewV4()),
@@ -91,13 +89,8 @@ func (as *AuthService) CreateSession(user schemas.AuthUser) (models.Session, err
 }
 
 func (as *AuthService) CheckUserPassword(passwordDB, password string) error {
-	// user, err := as.AuthRepo.GetUserByEmail(email)
-	// if err != nil {
-	// 	return err
-	// }
-
 	if !hashbcrypt.CheckHashedPassword(password, passwordDB) {
-		return errors.New("Wrong password") // где хранить все ошибки?
+		return errors.New("wrong password") // где хранить все ошибки?
 	}
 
 	return nil
@@ -118,9 +111,3 @@ func (as *AuthService) GetSession() (models.Session, error) {
 	}
 	return session, nil
 }
-
-// идея продлить сессию когда остается 5 минут или типо того
-// func (as *AuthService) ExtendSession(token string) (error) {
-// 	session, _ := as.GetSession(token)
-
-// }

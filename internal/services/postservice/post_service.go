@@ -1,12 +1,12 @@
 package postservice
 
 import (
-	"errors"
 	"forum/internal/exceptions"
 	"forum/internal/models"
 	"forum/internal/repositories/authrepo"
 	"forum/internal/repositories/postrepo"
 	"forum/internal/schemas"
+	"sort"
 
 	"github.com/gofrs/uuid"
 )
@@ -32,12 +32,14 @@ type PostServiceI interface {
 
 	GetAllCategories() ([]*schemas.Category, error)
 
-	GetVote(postID uuid.UUID, userID uuid.UUID) (schemas.ShowVote, error)
-	DeleteVote(voteID uuid.UUID, postUpdate schemas.UpdatePost) error
-	CreateVote(voteCreate schemas.CreateVote) error
+	GetVote(postOrCommentID uuid.UUID, userID uuid.UUID, belonging string) (schemas.ShowVote, error)
+	DeleteVote(voteID uuid.UUID) error
+	CreateVote(voteCreate schemas.CreateVote, belonging string) error
 	GetLikedPosts(userID uuid.UUID, posts []*schemas.GetPostResponse) ([]*schemas.GetPostResponse, error)
 
 	CreateComment(commentCreate schemas.CreateComment) error
+	GetComment(commentID uuid.UUID) (schemas.ShowComment, error)
+	UpdateComment(userID uuid.UUID, commentUpdate schemas.UpdateComment) error
 }
 
 func (as *PostService) CreatePost(userID uuid.UUID, postCreate schemas.CreatePost) error {
@@ -111,8 +113,9 @@ func (as *PostService) GetPost(postID uuid.UUID) (*schemas.GetPostResponse, erro
 		return nil, exceptions.NewInternalServerError()
 	}
 
-	// get comments and likes
-
+	sort.Slice(comments, func(i, j int) bool {
+		return comments[i].CreatedAt.After(comments[j].CreatedAt)
+	})
 	return &schemas.GetPostResponse{
 		Username:   user.Username,
 		PostID:     post.ID,
@@ -128,43 +131,50 @@ func (as *PostService) GetPost(postID uuid.UUID) (*schemas.GetPostResponse, erro
 	}, nil
 }
 
-func (as *PostService) GetVote(postID uuid.UUID, userID uuid.UUID) (schemas.ShowVote, error) {
+func (as *PostService) GetVote(postOrCommentID uuid.UUID, userID uuid.UUID, belonging string) (schemas.ShowVote, error) {
 	voteResponse := schemas.ShowVote{}
-	vote, err := as.PostRepo.GetVoteOfPost(postID, userID)
-	if err != nil {
-		return voteResponse, errors.New("vote is not found")
-	}
+	if belonging == "post" {
+		vote, err := as.PostRepo.GetVoteOfPost(postOrCommentID, userID)
+		if err != nil {
+			return voteResponse, exceptions.NewResourceNotFoundError("Vote is not found")
+		}
 
-	voteResponse.VoteID = vote.ID
-	voteResponse.UserID = vote.UserID
-	voteResponse.PostID = vote.PostID
-	voteResponse.Binary = vote.Binary
+		voteResponse.VoteID = vote.ID
+		voteResponse.UserID = vote.UserID
+		voteResponse.PostID = vote.PostID
+		voteResponse.Binary = vote.Binary
+	} else {
+		vote, err := as.PostRepo.GetVoteOfComment(postOrCommentID, userID)
+
+		if err != nil {
+			return voteResponse, exceptions.NewResourceNotFoundError("Vote is not found")
+		}
+		voteResponse.VoteID = vote.ID
+		voteResponse.UserID = vote.UserID
+		voteResponse.CommentID = vote.CommentID
+		voteResponse.Binary = vote.Binary
+	}
 	return voteResponse, nil
 }
 
-func (as *PostService) DeleteVote(voteID uuid.UUID, postUpdate schemas.UpdatePost) error {
+func (as *PostService) DeleteVote(voteID uuid.UUID) error {
 	err := as.PostRepo.DeleteVoteOfPost(voteID)
 	if err != nil {
 		return err
 	}
-	post := models.Post{
-		ID:       postUpdate.PostID,
-		Title:    postUpdate.Title,
-		Body:     postUpdate.Body,
-		Image:    postUpdate.Image,
-		Likes:    postUpdate.Likes,
-		Dislikes: postUpdate.Dislikes,
-	}
-	err = as.PostRepo.UpdatePost(post)
 	return err
 }
 
-func (as *PostService) CreateVote(voteCreate schemas.CreateVote) error {
+func (as *PostService) CreateVote(voteCreate schemas.CreateVote, belonging string) error {
 	vote := models.Vote{
 		ID:     voteCreate.VoteID,
 		UserID: voteCreate.UserID,
-		PostID: voteCreate.PostID,
 		Binary: voteCreate.Binary,
+	}
+	if belonging == "post" {
+		vote.PostID = voteCreate.PostID
+	} else {
+		vote.CommentID = voteCreate.CommentID
 	}
 	err := as.PostRepo.CreateVote(vote)
 	if err != nil {
@@ -177,6 +187,9 @@ func (as *PostService) GetPostsAll(category string) ([]*schemas.GetPostResponse,
 	var getPostsAllResponse []*schemas.GetPostResponse
 
 	posts, err := as.PostRepo.GetPostsAll()
+	sort.Slice(posts, func(i, j int) bool {
+		return posts[i].CreatedAt.After(posts[j].CreatedAt)
+	})
 	if err != nil {
 		return nil, exceptions.NewInternalServerError()
 	}
@@ -272,8 +285,6 @@ func (as *PostService) GetMyPosts(userID uuid.UUID) ([]*schemas.GetPostResponse,
 		})
 	}
 
-	// You may want to get comments and likes here
-
 	return getMyPostsResponse, nil
 }
 
@@ -303,6 +314,8 @@ func (as *PostService) CreateComment(commentCreate schemas.CreateComment) error 
 		UserID:      commentCreate.UserID,
 		Description: commentCreate.Content,
 		PostID:      commentCreate.PostID,
+		Likes:       commentCreate.Likes,
+		Dislikes:    commentCreate.Dislikes,
 	}
 	err := as.PostRepo.CreateComment(comment)
 	if err != nil {
@@ -321,5 +334,37 @@ func (as *PostService) CreateComment(commentCreate schemas.CreateComment) error 
 
 	// }
 
+	return nil
+}
+
+func (as *PostService) GetComment(commentID uuid.UUID) (schemas.ShowComment, error) {
+	var commentResp schemas.ShowComment
+
+	comment, err := as.PostRepo.GetComment(commentID)
+	if err != nil {
+		return schemas.ShowComment{}, exceptions.NewInternalServerError()
+	}
+	commentResp.ID = comment.ID
+	commentResp.UserID = comment.UserID
+	commentResp.PostID = comment.PostID
+	commentResp.Content = comment.Description
+	commentResp.Likes = comment.Likes
+	commentResp.Dislikes = comment.Dislikes
+	return commentResp, nil
+}
+
+func (as *PostService) UpdateComment(userID uuid.UUID, commentUpdate schemas.UpdateComment) error {
+
+	comment := models.Comment{
+		ID:       commentUpdate.ID,
+		UserID:   userID,
+		Likes:    commentUpdate.Likes,
+		Dislikes: commentUpdate.Dislikes,
+	}
+
+	err := as.PostRepo.UpdateComment(comment)
+	if err != nil {
+		return exceptions.NewInternalServerError()
+	}
 	return nil
 }

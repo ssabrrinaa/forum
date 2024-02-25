@@ -15,7 +15,7 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		registerForm := &schemas.RegisterForm{}
 		if r.Method == http.MethodPost {
 			if err := r.ParseForm(); err != nil {
-				dataErr := exceptions.NewBadRequestError()
+				dataErr := exceptions.NewBadRequestError("Invalid form values")
 				params := cust_encoders.EncodeParams(dataErr)
 				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 			} else {
@@ -31,8 +31,6 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 				passwordOk, msgPassword := validator.ValidatePassword(password)
 
 				confirmPasswordOk, msgConfirmedPassword := validator.ValidatePasswordConfirmed(password, confirmPassword)
-				fmt.Println(password)
-				fmt.Println(confirmPassword)
 				if !nameOk || !emailOk || !passwordOk || !confirmPasswordOk {
 					registerForm.TemplateForm = &schemas.TemplateForm{}
 					if !nameOk {
@@ -64,12 +62,12 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 						},
 						PasswordConfirm: r.Form.Get("password_confirm"),
 					}
-					fmt.Println(user)
 					err := ah.AuthService.CreateUser(user)
 					if err != nil {
 						params := cust_encoders.EncodeParams(err)
 						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 					} else {
+						fmt.Println("asd")
 						http.Redirect(w, r, "/signin", http.StatusSeeOther)
 					}
 				}
@@ -84,7 +82,6 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		} else {
 			err := t.Execute(w, registerForm)
 			if err != nil {
-				fmt.Println(err)
 				dataErr := exceptions.NewInternalServerError()
 				params := cust_encoders.EncodeParams(dataErr)
 				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
@@ -117,7 +114,7 @@ func (ah *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	} else if r.Method == http.MethodPost {
 		if err := r.ParseForm(); err != nil {
-			dataErr := exceptions.NewBadRequestError()
+			dataErr := exceptions.NewBadRequestError("Invalid form values")
 			params := cust_encoders.EncodeParams(dataErr)
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		} else {
@@ -159,7 +156,6 @@ func (ah *AuthHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.AuthService.DeleteSession()
-	fmt.Println("hello")
 	expiredCookie := &http.Cookie{
 		Name:     "session",
 		Value:    "",
