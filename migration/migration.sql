@@ -30,16 +30,6 @@ CREATE TABLE IF NOT EXISTS posts (
     FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS comments (
-    comment_id UUID PRIMARY KEY,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    description TEXT NOT NULL,
-    post_id UUID NOT NULL,
-    user_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS categories (
     category_id UUID PRIMARY KEY,
     name TEXT NOT NULL
@@ -56,10 +46,12 @@ CREATE TABLE IF NOT EXISTS categories_posts_association (
 CREATE TABLE IF NOT EXISTS votes(
     vote_id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
-    post_id UUID NOT NULL,
+    post_id UUID,
+    comment_id UUID,
     binary INT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
-    FOREIGN KEY (post_id) REFERENCES posts (post_id) ON DELETE CASCADE
+    FOREIGN KEY (post_id) REFERENCES posts (post_id) ON DELETE CASCADE,
+    FOREIGN KEY (comment_id) REFERENCES comments (comment_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS comments (
@@ -67,6 +59,10 @@ CREATE TABLE IF NOT EXISTS comments (
     content TEXT NOT NULL,
     user_id UUID NOT NULL,
     post_id UUID NOT NULL,
+    likes INT NOT NULL,
+    dislikes INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
     FOREIGN KEY (post_id) REFERENCES posts (post_id) ON DELETE CASCADE
 );
@@ -93,3 +89,4 @@ CREATE INDEX IF NOT EXISTS idx_vote_post_id ON votes (post_id);
 CREATE INDEX IF NOT EXISTS idx_comment_id ON comments (comment_id);
 CREATE INDEX IF NOT EXISTS idx_comment_user_id ON comments (user_id);
 CREATE INDEX IF NOT EXISTS idx_comment_post_id ON comments (post_id);
+CREATE INDEX IF NOT EXISTS idx_comment_comment_id ON comments (comment_id);

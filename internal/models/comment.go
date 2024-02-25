@@ -14,6 +14,6 @@ type Comment struct {
 	PostID      uuid.UUID
 	UserID      uuid.UUID
 	UserName    string
-	Like        int
-	Dislike     int
+	Likes       int
+	Dislikes    int
 }

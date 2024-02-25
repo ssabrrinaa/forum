@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"fmt"
 	"forum/internal/schemas"
 	"regexp"
 	"strings"
@@ -125,8 +126,8 @@ func ValidateCreatePostInput(post schemas.CreatePost) error {
 
 func ValidatePostTitle(title string) (bool, string) {
 	title = strings.TrimSpace(title)
-
-	if len(title) > 20 || len(title) < 5 {
+	fmt.Println(len(title))
+	if len(title) > 50 || len(title) < 5 {
 		return false, "Post title should be at least 5 and at most 50 characters"
 	}
 	return true, "success"

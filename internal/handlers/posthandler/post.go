@@ -43,7 +43,7 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 		createPostForm.Categories = categories
 		if r.Method == http.MethodPost {
 			if err := r.ParseForm(); err != nil {
-				dataErr := exceptions.NewBadRequestError()
+				dataErr := exceptions.NewBadRequestError("Invalid form values")
 				params := cust_encoders.EncodeParams(dataErr)
 				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 			} else {
@@ -71,7 +71,6 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 
 					createPostForm.TemplatePostForm.PostDataForErr.Title = title
 					createPostForm.TemplatePostForm.PostDataForErr.Body = body
-
 				}
 				if titleOk && bodyOk && categoryOk {
 					post := schemas.CreatePost{
@@ -136,26 +135,28 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := session.UserID
-	postID := r.FormValue("post_id")
-	if postID == "" {
-		dataErr := exceptions.NewBadRequestError()
-		params := cust_encoders.EncodeParams(dataErr)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
-	}
+	var postID string
 	if r.Method == http.MethodPost {
 		if err := r.ParseForm(); err != nil {
-			dataErr := exceptions.NewBadRequestError()
+			dataErr := exceptions.NewBadRequestError("Invalid form values")
 			params := cust_encoders.EncodeParams(dataErr)
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 			return
 		} else {
+			postID = r.FormValue("post_id")
+			if postID == "" {
+				dataErr := exceptions.NewBadRequestError("Post ID is not given")
+				params := cust_encoders.EncodeParams(dataErr)
+				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+				return
+			}
+
 			values := r.URL.Query()
 			like := values.Get("like")
 			dislike := values.Get("dislike")
 			var isLike bool
 			if like != "" && dislike != "" {
-				dataErr := exceptions.NewBadRequestError()
+				dataErr := exceptions.NewBadRequestError("Like or dislike should take place")
 				params := cust_encoders.EncodeParams(dataErr)
 				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 				return
@@ -165,15 +166,14 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 			}
 			postIDArg, err := uuid.FromString(postID)
 			if err != nil {
-				dataErr := exceptions.NewBadRequestError()
+				dataErr := exceptions.NewBadRequestError("Invalid post ID")
 				params := cust_encoders.EncodeParams(dataErr)
 				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 				return
 			}
 			getPostResponse, err := ah.PostService.GetPost(postIDArg)
 			if err != nil {
-				dataErr := exceptions.NewResourceNotFoundError()
-				params := cust_encoders.EncodeParams(dataErr)
+				params := cust_encoders.EncodeParams(err)
 				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 				return
 			}
@@ -188,7 +188,7 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 					Dislikes: getPostResponse.Dislikes,
 				},
 			}
-			vote, err := ah.PostService.GetVote(postIDArg, userID)
+			vote, err := ah.PostService.GetVote(postIDArg, userID, "post")
 
 			voteCreate := schemas.CreateVote{
 				ShowVote: schemas.ShowVote{
@@ -213,7 +213,7 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				voteCreate.Binary = binary
-				err = ah.PostService.CreateVote(voteCreate)
+				err = ah.PostService.CreateVote(voteCreate, "post")
 				if err != nil {
 					params := cust_encoders.EncodeParams(err)
 					http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
@@ -237,7 +237,13 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 					isDelete = true
 				}
 				if isDelete {
-					err := ah.PostService.DeleteVote(vote.VoteID, postUpdate)
+					err := ah.PostService.DeleteVote(vote.VoteID)
+					if err != nil {
+						params := cust_encoders.EncodeParams(err)
+						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+						return
+					}
+					err = ah.PostService.UpdatePost(userID, postUpdate)
 					if err != nil {
 						params := cust_encoders.EncodeParams(err)
 						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
@@ -245,7 +251,7 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 					}
 					voteCreate.Binary = binary
 					voteCreate.VoteID = uuid.Must(uuid.NewV4())
-					err = ah.PostService.CreateVote(voteCreate)
+					err = ah.PostService.CreateVote(voteCreate, "post")
 					if err != nil {
 						params := cust_encoders.EncodeParams(err)
 						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
@@ -267,21 +273,13 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var session *Session
 	sessionValue := r.Context().Value("session")
-
-	if sessionValue == nil {
-		dataErr := exceptions.NewInternalServerError()
-		params := cust_encoders.EncodeParams(dataErr)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
-	}
-
-	session, ok := sessionValue.(Session)
-	if !ok {
-		dataErr := exceptions.NewInternalServerError()
-		params := cust_encoders.EncodeParams(dataErr)
-		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-		return
+	if sessionValue != nil {
+		sessionVal, ok := sessionValue.(Session)
+		if ok {
+			session = &sessionVal
+		}
 	}
 
 	postIDStr := r.URL.Query().Get("post_id")
@@ -300,7 +298,7 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp := &schemas.Data{
-		Session: &session,
+		Session: session,
 		Post:    getPostResponse,
 	}
 
@@ -451,7 +449,7 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 	// createPostForm.Categories = categories
 	// if r.Method == http.MethodPost {
 	if err := r.ParseForm(); err != nil {
-		dataErr := exceptions.NewBadRequestError()
+		dataErr := exceptions.NewBadRequestError("Invalid form values")
 		params := cust_encoders.EncodeParams(dataErr)
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 	} else {
@@ -464,8 +462,13 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 			return
 		}
-		// commentOk, msgComment := validator.ValidatePostComment(content)
-
+		commentOk, msgComment := validator.ValidatePostComment(content)
+		if !commentOk {
+			dataErr := exceptions.NewValidationError(msgComment)
+			params := cust_encoders.EncodeParams(dataErr)
+			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+			return
+		}
 		// if !commentOk {
 		// 	createCommentForm.TemplateCommentForm = &schemas.TemplateCommentForm{}
 		// 	createCommentForm.TemplateCommentForm.CommentErrors = msgComment
@@ -474,9 +477,11 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 
 		// if commentOk {
 		comment := schemas.CreateComment{
-			Content: content,
-			PostID:  postID,
-			UserID:  session.UserID,
+			Content:  content,
+			PostID:   postID,
+			UserID:   session.UserID,
+			Likes:    0,
+			Dislikes: 0,
 		}
 
 		err = ah.PostService.CreateComment(comment)
@@ -506,4 +511,156 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 	// 	params := cust_encoders.EncodeParams(dataErr)
 	// 	http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 	// 	return
+}
+
+func (ah *PostHandler) CommentUpdate(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		dataErr := exceptions.NewStatusMethodNotAllowed()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
+
+	sessionValue := r.Context().Value("session")
+
+	if sessionValue == nil {
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
+
+	session, ok := sessionValue.(Session)
+	if !ok {
+		dataErr := exceptions.NewInternalServerError()
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
+	userID := session.UserID
+	var commentID string
+	var postID string
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			dataErr := exceptions.NewBadRequestError("Invalid form values")
+			params := cust_encoders.EncodeParams(dataErr)
+			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+			return
+		} else {
+			postID = r.FormValue("post_id")
+			commentID = r.FormValue("comment_id")
+			if commentID == "" || postID == "" {
+				dataErr := exceptions.NewBadRequestError("Post ID and Comment ID should be present")
+				params := cust_encoders.EncodeParams(dataErr)
+				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+				return
+			}
+			values := r.URL.Query()
+			like := values.Get("like")
+			dislike := values.Get("dislike")
+			var isLike bool
+			if like != "" && dislike != "" {
+				dataErr := exceptions.NewBadRequestError("Like or Dislike should take place")
+				params := cust_encoders.EncodeParams(dataErr)
+				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+				return
+			}
+			if like != "" {
+				isLike = true
+			}
+			commentIDArg, err := uuid.FromString(commentID)
+			if err != nil {
+				dataErr := exceptions.NewBadRequestError("Invalid Comment ID")
+				params := cust_encoders.EncodeParams(dataErr)
+				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+				return
+			}
+			comment, err := ah.PostService.GetComment(commentIDArg)
+			if err != nil {
+				params := cust_encoders.EncodeParams(err)
+				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+				return
+			}
+			commentUpdate := schemas.UpdateComment{
+				ID:       commentIDArg,
+				Likes:    comment.Likes,
+				Dislikes: comment.Dislikes,
+			}
+			vote, err := ah.PostService.GetVote(commentIDArg, userID, "comment")
+
+			voteCreate := schemas.CreateVote{
+				ShowVote: schemas.ShowVote{
+					VoteID:    uuid.Must(uuid.NewV4()),
+					UserID:    userID,
+					CommentID: commentIDArg,
+					Binary:    -1,
+				},
+			}
+			var binary int
+			if err != nil {
+				if isLike {
+					commentUpdate.Likes++
+					binary = 1
+				} else {
+					commentUpdate.Dislikes++
+				}
+				err := ah.PostService.UpdateComment(userID, commentUpdate)
+				if err != nil {
+					params := cust_encoders.EncodeParams(err)
+					http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+					return
+				}
+				voteCreate.Binary = binary
+				err = ah.PostService.CreateVote(voteCreate, "comment")
+				if err != nil {
+					params := cust_encoders.EncodeParams(err)
+					http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+					return
+				}
+			} else {
+				var isDelete bool
+
+				if isLike && vote.Binary == 0 {
+					commentUpdate.Likes++
+					if commentUpdate.Dislikes != 0 {
+						commentUpdate.Dislikes--
+					}
+					isDelete = true
+					binary = 1
+				} else if !isLike && vote.Binary == 1 {
+					commentUpdate.Dislikes++
+					if commentUpdate.Likes != 0 {
+						commentUpdate.Likes--
+					}
+					isDelete = true
+				}
+				if isDelete {
+					err := ah.PostService.DeleteVote(vote.VoteID)
+					if err != nil {
+						params := cust_encoders.EncodeParams(err)
+						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+						return
+					}
+					err = ah.PostService.UpdateComment(userID, commentUpdate)
+					if err != nil {
+						params := cust_encoders.EncodeParams(err)
+						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+						return
+					}
+
+					voteCreate.Binary = binary
+					voteCreate.VoteID = uuid.Must(uuid.NewV4())
+					err = ah.PostService.CreateVote(voteCreate, "comment")
+					if err != nil {
+						params := cust_encoders.EncodeParams(err)
+						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+						return
+					}
+				}
+			}
+		}
+
+		http.Redirect(w, r, "/post/get?post_id="+postID, http.StatusSeeOther)
+	}
 }

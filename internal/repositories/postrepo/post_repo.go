@@ -35,6 +35,9 @@ type PostRepoI interface {
 
 	CreateComment(comment models.Comment) error
 	GetCommentsByPostID(postID uuid.UUID) ([]*models.Comment, error)
+	GetVoteOfComment(commentID uuid.UUID, userID uuid.UUID) (models.Vote, error)
+	GetComment(commentID uuid.UUID) (models.Comment, error)
+	UpdateComment(comment models.Comment) error
 }
 
 func (ar *PostRepo) CreatePostCategories(input models.CreateCategoryPost) error {
@@ -264,10 +267,10 @@ func (ar *PostRepo) DeleteVoteOfPost(voteID uuid.UUID) error {
 
 func (ar *PostRepo) CreateVote(vote models.Vote) error {
 	stmt := `
-		INSERT INTO votes (vote_id, user_id, post_id, binary) 
-		VALUES (?, ?, ?, ?);
+		INSERT INTO votes (vote_id, user_id, post_id, comment_id, binary) 
+		VALUES (?, ?, ?, ?, ?);
 	`
-	if _, err := ar.db.Exec(stmt, vote.ID, vote.UserID, vote.PostID, vote.Binary); err != nil {
+	if _, err := ar.db.Exec(stmt, vote.ID, vote.UserID, vote.PostID, vote.CommentID, vote.Binary); err != nil {
 		return err
 	}
 	return nil
@@ -307,10 +310,10 @@ func (ar *PostRepo) GetVotes() ([]models.Vote, error) {
 
 func (ar *PostRepo) CreateComment(comment models.Comment) error {
 	stmt := `
-		INSERT INTO comments (comment_id, description, post_id, user_id) 
-		VALUES (?, ?, ?, ?);
+		INSERT INTO comments (comment_id, content, post_id, user_id, likes, dislikes) 
+		VALUES (?, ?, ?, ?, ?, ?);
 	`
-	if _, err := ar.db.Exec(stmt, comment.ID, comment.Description, comment.PostID, comment.UserID); err != nil {
+	if _, err := ar.db.Exec(stmt, comment.ID, comment.Description, comment.PostID, comment.UserID, comment.Likes, comment.Dislikes); err != nil {
 		return err
 	}
 	return nil
@@ -323,9 +326,11 @@ func (ar *PostRepo) GetCommentsByPostID(postID uuid.UUID) ([]*models.Comment, er
 			c.comment_id,
 			c.created_at,
 			c.updated_at,
-			c.description,
+			c.content,
 			c.post_id,
 			c.user_id,
+			c.likes,
+			c.dislikes,
 			u.username
 		FROM comments c
 		JOIN users u ON u.user_id = c.user_id 
@@ -341,7 +346,7 @@ func (ar *PostRepo) GetCommentsByPostID(postID uuid.UUID) ([]*models.Comment, er
 
 	for rows.Next() {
 		var comment models.Comment
-		if err := rows.Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt, &comment.Description, &comment.PostID, &comment.UserID, &comment.UserName); err != nil {
+		if err := rows.Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt, &comment.Description, &comment.PostID, &comment.UserID, &comment.Likes, &comment.Dislikes, &comment.UserName); err != nil {
 			return nil, err
 		}
 		comments = append(comments, &comment)
@@ -352,4 +357,59 @@ func (ar *PostRepo) GetCommentsByPostID(postID uuid.UUID) ([]*models.Comment, er
 	}
 
 	return comments, nil
+}
+
+func (ar *PostRepo) GetVoteOfComment(commentID uuid.UUID, userID uuid.UUID) (models.Vote, error) {
+	var vote models.Vote
+	stmt := `
+		SELECT
+			vote_id,
+			user_id,
+			comment_id,
+			binary
+		FROM votes
+		WHERE comment_id = ?
+		  AND user_id = ?;
+	`
+	raw := ar.db.QueryRow(stmt, commentID, userID)
+
+	if err := raw.Scan(&vote.ID, &vote.UserID, &vote.CommentID, &vote.Binary); err != nil {
+		return vote, err
+	}
+	return vote, nil
+}
+
+func (ar *PostRepo) GetComment(commentID uuid.UUID) (models.Comment, error) {
+	var comment models.Comment
+	stmt := `
+		SELECT
+			comment_id,
+			content,	
+			user_id,
+			post_id,
+			likes,
+			dislikes,
+			created_at,
+			updated_at
+		FROM comments
+		WHERE comment_id = ?;
+	`
+	raw := ar.db.QueryRow(stmt, commentID)
+
+	if err := raw.Scan(&comment.ID, &comment.Description, &comment.UserID, &comment.PostID, &comment.Likes, &comment.Dislikes, &comment.CreatedAt, &comment.UpdatedAt); err != nil {
+		return comment, err
+	}
+	return comment, nil
+}
+
+func (ar *PostRepo) UpdateComment(comment models.Comment) error {
+	stmt := `
+		UPDATE comments 
+		SET updated_at = CURRENT_TIMESTAMP, likes = ?, dislikes = ? 
+		WHERE comment_id = ?;
+	`
+	if _, err := ar.db.Exec(stmt, comment.Likes, comment.Dislikes, comment.ID); err != nil {
+		return err
+	}
+	return nil
 }

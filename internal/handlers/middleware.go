@@ -35,7 +35,7 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 			}
 
 			if session.Token != cookie.Value {
-				dataErr := exceptions.NewAuthenticationError()
+				dataErr := exceptions.NewAuthenticationError("Token is invalid")
 				params := cust_encoders.EncodeParams(dataErr)
 				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 				return
@@ -47,14 +47,7 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 			if sessionErr == nil {
 				if r.URL.Path == "/signin" {
 					if cookieErr != nil {
-						err := h.AuthHandler.AuthService.DeleteSession()
-						if err != nil {
-							params := cust_encoders.EncodeParams(err)
-							if err != nil {
-								http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-								return
-							}
-						}
+						h.AuthHandler.AuthService.DeleteSession()
 					} else if session.Token == cookie.Value {
 						http.Redirect(w, r, "/post/", http.StatusSeeOther)
 						return
@@ -90,7 +83,7 @@ func (h *Handler) ErrorMiddleware(next http.Handler) http.Handler {
 			} else {
 				dataErr, err := cust_encoders.DecodeParams(stringParams)
 				if err != nil {
-					dataErr := exceptions.NewBadRequestError()
+					dataErr := exceptions.NewBadRequestError("Invalid error parameters are given")
 					params := cust_encoders.EncodeParams(dataErr)
 					http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 				}
@@ -124,7 +117,7 @@ func (h *Handler) ErrorMiddleware(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r.WithContext(ctx))
 			}
 		} else {
-			dataErr := exceptions.NewResourceNotFoundError()
+			dataErr := exceptions.NewResourceNotFoundError("Page is not found")
 			params := cust_encoders.EncodeParams(dataErr)
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		}

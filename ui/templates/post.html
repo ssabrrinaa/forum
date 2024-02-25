@@ -104,21 +104,19 @@
                     <pre><code>{{.Description}}</code></pre>
                     <div id="{{.ID}}" class='comment'>
                         <span>
-                            <form method="POST" action="/comment/vote/create#{{.ID}}">
+                            <form method="POST" action="/comment/update?like=1">
                                 <input type="hidden" name="post_id" value="{{.PostID}}">
                                 <input type="hidden" name="comment_id" value="{{.ID}}">
-                                <input type="hidden" name="vote" value=1>
                                 <button type="submit"><img src="/static/img/like.png" style="width: 25px ;"
-                                        alt="like button"> {{.Like}}</button>
+                                        alt="like button"> {{.Likes}}</button>
                             </form>
                         </span>
                         <span>
-                            <form method="POST" action="/comment/vote/create#{{.ID}}">
+                            <form method="POST" action="/comment/update?dislike=1">
                                 <input type="hidden" name="post_id" value="{{.PostID}}">
                                 <input type="hidden" name="comment_id" value="{{.ID}}">
-                                <input type="hidden" name="vote" value=-1>
                                 <button type="submit"><img src="/static/img/dislike.png" style="width: 25px ;"
-                                        alt="dislike button"> {{.Dislike}}</button>
+                                        alt="dislike button"> {{.Dislikes}}</button>
                             </form>
                         </span>
 

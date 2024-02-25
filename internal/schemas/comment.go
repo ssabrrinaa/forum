@@ -7,10 +7,12 @@ import (
 )
 
 type CreateComment struct {
-	ID      uuid.UUID
-	Content string
-	PostID  uuid.UUID
-	UserID  uuid.UUID
+	ID       uuid.UUID
+	Content  string
+	PostID   uuid.UUID
+	UserID   uuid.UUID
+	Likes    int
+	Dislikes int
 }
 
 type CreateCommentForm struct {
@@ -21,4 +23,19 @@ type CreateCommentForm struct {
 type TemplateCommentForm struct {
 	CommentErrors     string
 	CommentDataForErr string
+}
+
+type UpdateComment struct {
+	ID       uuid.UUID
+	Likes    int
+	Dislikes int
+}
+
+type ShowComment struct {
+	ID       uuid.UUID
+	Content  string
+	PostID   uuid.UUID
+	UserID   uuid.UUID
+	Likes    int
+	Dislikes int
 }
