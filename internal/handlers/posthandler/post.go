@@ -285,7 +285,7 @@ func (ah *PostHandler) PostGet(w http.ResponseWriter, r *http.Request) {
 	postIDStr := r.URL.Query().Get("post_id")
 	postID, err := uuid.FromString(postIDStr)
 	if err != nil {
-		dataErr := exceptions.NewInternalServerError()
+		dataErr := exceptions.NewBadRequestError("Invalid Post ID")
 		params := cust_encoders.EncodeParams(dataErr)
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
@@ -439,15 +439,8 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		return
 	}
-	// categories, err := ah.PostService.GetAllCategories()
-	// if err != nil {
-	// 	params := cust_encoders.EncodeParams(err)
-	// 	http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-	// }
 	createCommentForm := &schemas.CreateCommentForm{}
 	createCommentForm.Session = &session
-	// createPostForm.Categories = categories
-	// if r.Method == http.MethodPost {
 	if err := r.ParseForm(); err != nil {
 		dataErr := exceptions.NewBadRequestError("Invalid form values")
 		params := cust_encoders.EncodeParams(dataErr)
@@ -457,7 +450,7 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 		postIDStr := r.Form.Get("post_id")
 		postID, err := uuid.FromString(postIDStr)
 		if err != nil {
-			dataErr := exceptions.NewInternalServerError()
+			dataErr := exceptions.NewBadRequestError("Invalid Post ID")
 			params := cust_encoders.EncodeParams(dataErr)
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 			return
@@ -469,13 +462,6 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 			return
 		}
-		// if !commentOk {
-		// 	createCommentForm.TemplateCommentForm = &schemas.TemplateCommentForm{}
-		// 	createCommentForm.TemplateCommentForm.CommentErrors = msgComment
-		// 	createCommentForm.TemplateCommentForm.CommentDataForErr = content
-		// }
-
-		// if commentOk {
 		comment := schemas.CreateComment{
 			Content:  content,
 			PostID:   postID,
@@ -491,11 +477,8 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		http.Redirect(w, r, "/post/get?post_id="+postIDStr, http.StatusSeeOther)
-
 		return
-		// }
 	}
-	// }
 
 	t, err := template.ParseFiles("ui/templates/post.html")
 	if err != nil {
@@ -505,12 +488,6 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	t.Execute(w, createCommentForm)
-	return
-	// 	}
-	// 	dataErr := exceptions.NewStatusMethodNotAllowed()
-	// 	params := cust_encoders.EncodeParams(dataErr)
-	// 	http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-	// 	return
 }
 
 func (ah *PostHandler) CommentUpdate(w http.ResponseWriter, r *http.Request) {

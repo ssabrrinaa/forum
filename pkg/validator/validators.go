@@ -33,21 +33,30 @@ func ValidateName(userName string) (bool, string) {
 	return true, "success"
 }
 
-func ValidateEmail(userEmail string) (bool, string) {
+func ValidateEmail(userEmail string) (string, bool, string) {
 	if userEmail == "" {
-		return false, "User email should not be empty"
+		return "", false, "User email should not be empty"
 	}
 
 	if !validateEmail(userEmail) {
-		return false, "User email contains incorrect characters"
+		return "", false, "User email contains incorrect characters"
 	}
 
-	return true, "success"
+	email := ClearEmail(userEmail)
+
+	return email, true, "success"
 }
 
 func validateEmail(e string) bool {
+
 	emailRegex := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 	return emailRegex.MatchString(e)
+}
+
+func ClearEmail(email string) string {
+	email = strings.TrimSpace(email)
+	email = strings.ToLower(email)
+	return email
 }
 
 func ValidatePassword(password string) (bool, string) {

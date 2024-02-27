@@ -26,7 +26,7 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 				nameOk, msgName := validator.ValidateName(userName)
 
-				emailOk, msgEmail := validator.ValidateEmail(email)
+				email, emailOk, msgEmail := validator.ValidateEmail(email)
 
 				passwordOk, msgPassword := validator.ValidatePassword(password)
 
@@ -56,9 +56,9 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 				if nameOk && emailOk && passwordOk && confirmPasswordOk {
 					user := schemas.CreateUser{
 						UpdateUser: schemas.UpdateUser{
-							Username: r.FormValue("username"),
-							Email:    r.FormValue("email"),
-							Password: r.FormValue("password"),
+							Username: userName,
+							Email:    email,
+							Password: password,
 						},
 						PasswordConfirm: r.Form.Get("password_confirm"),
 					}
@@ -118,8 +118,11 @@ func (ah *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 			params := cust_encoders.EncodeParams(dataErr)
 			http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 		} else {
+			email := r.Form.Get("email")
+			email = validator.ClearEmail(email)
+
 			user := schemas.AuthUser{
-				Email:    r.Form.Get("email"),
+				Email:    email,
 				Password: r.Form.Get("password"),
 			}
 			session, err := ah.AuthService.CreateSession(user)

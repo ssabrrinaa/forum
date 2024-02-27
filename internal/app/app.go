@@ -31,6 +31,7 @@ func Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	
 	repo := repository.NewRepository(db)
 	service := service.NewService(repo)
 	handler := handler.NewHandler(service)
