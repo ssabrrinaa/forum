@@ -49,11 +49,11 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 			} else {
 				title := r.FormValue("title")
 				body := r.FormValue("body")
-				categories := r.PostForm["categories"]
+				categoriesInput := r.PostForm["categories"]
 
 				titleOk, msgTitle := validator.ValidatePostTitle(title)
 				bodyOk, msgBody := validator.ValidatePostBody(body)
-				categoryOk, msgCategory := validator.ValidateCategoryLen(categories)
+				categoryOk, msgCategory := validator.ValidateCategoryLen(categoriesInput, categories)
 
 				if !titleOk || !bodyOk || !categoryOk {
 					createPostForm.TemplatePostForm = &schemas.TemplatePostForm{}
@@ -79,7 +79,7 @@ func (ah *PostHandler) PostCreate(w http.ResponseWriter, r *http.Request) {
 						Image:      "/dgf/dfg",
 						Likes:      0,
 						Dislikes:   0,
-						Categories: categories,
+						Categories: categoriesInput,
 					}
 
 					err = ah.PostService.CreatePost(session.UserID, post)

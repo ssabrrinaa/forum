@@ -160,9 +160,17 @@ func ValidatePostComment(body string) (bool, string) {
 	return true, "success"
 }
 
-func ValidateCategoryLen(categories []string) (bool, string) {
+func ValidateCategoryLen(categoriesInput []string, categories []*schemas.Category) (bool, string) {
 	if len(categories) < 1 {
 		return false, "Post should has at least one category"
+	}
+
+	for _, category := range categories {
+		for _, categoryInput := range categoriesInput {
+			if category.Name != categoryInput {
+				return false, "Unknown post category"
+			}
+		}
 	}
 	return true, "success"
 }
