@@ -221,7 +221,7 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 				}
 			} else {
 				var isDelete bool
-
+				var unvote bool
 				if isLike && vote.Binary == 0 {
 					postUpdate.Likes++
 					if postUpdate.Dislikes != 0 {
@@ -229,6 +229,14 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 					}
 					isDelete = true
 					binary = 1
+				} else if isLike && vote.Binary == 1 {
+					postUpdate.Likes--
+					isDelete = true
+					unvote = true
+				} else if !isLike && vote.Binary == 0 {
+					postUpdate.Dislikes--
+					isDelete = true
+					unvote = true
 				} else if !isLike && vote.Binary == 1 {
 					postUpdate.Dislikes++
 					if postUpdate.Likes != 0 {
@@ -249,13 +257,15 @@ func (ah *PostHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 						return
 					}
-					voteCreate.Binary = binary
-					voteCreate.VoteID = uuid.Must(uuid.NewV4())
-					err = ah.PostService.CreateVote(voteCreate, "post")
-					if err != nil {
-						params := cust_encoders.EncodeParams(err)
-						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-						return
+					if !unvote {
+						voteCreate.Binary = binary
+						voteCreate.VoteID = uuid.Must(uuid.NewV4())
+						err = ah.PostService.CreateVote(voteCreate, "post")
+						if err != nil {
+							params := cust_encoders.EncodeParams(err)
+							http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+							return
+						}
 					}
 				}
 			}
@@ -491,7 +501,6 @@ func (ah *PostHandler) CommentCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ah *PostHandler) CommentUpdate(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
 		dataErr := exceptions.NewStatusMethodNotAllowed()
 		params := cust_encoders.EncodeParams(dataErr)
@@ -597,7 +606,7 @@ func (ah *PostHandler) CommentUpdate(w http.ResponseWriter, r *http.Request) {
 				}
 			} else {
 				var isDelete bool
-
+				var unvote bool
 				if isLike && vote.Binary == 0 {
 					commentUpdate.Likes++
 					if commentUpdate.Dislikes != 0 {
@@ -605,6 +614,14 @@ func (ah *PostHandler) CommentUpdate(w http.ResponseWriter, r *http.Request) {
 					}
 					isDelete = true
 					binary = 1
+				} else if isLike && vote.Binary == 1 {
+					commentUpdate.Likes--
+					isDelete = true
+					unvote = true
+				} else if !isLike && vote.Binary == 0 {
+					commentUpdate.Dislikes--
+					isDelete = true
+					unvote = true
 				} else if !isLike && vote.Binary == 1 {
 					commentUpdate.Dislikes++
 					if commentUpdate.Likes != 0 {
@@ -625,15 +642,17 @@ func (ah *PostHandler) CommentUpdate(w http.ResponseWriter, r *http.Request) {
 						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 						return
 					}
-
-					voteCreate.Binary = binary
-					voteCreate.VoteID = uuid.Must(uuid.NewV4())
-					err = ah.PostService.CreateVote(voteCreate, "comment")
-					if err != nil {
-						params := cust_encoders.EncodeParams(err)
-						http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-						return
+					if !unvote {
+						voteCreate.Binary = binary
+						voteCreate.VoteID = uuid.Must(uuid.NewV4())
+						err = ah.PostService.CreateVote(voteCreate, "comment")
+						if err != nil {
+							params := cust_encoders.EncodeParams(err)
+							http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+							return
+						}
 					}
+
 				}
 			}
 		}

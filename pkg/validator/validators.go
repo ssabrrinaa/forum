@@ -48,7 +48,6 @@ func ValidateEmail(userEmail string) (string, bool, string) {
 }
 
 func validateEmail(e string) bool {
-
 	emailRegex := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 	return emailRegex.MatchString(e)
 }
@@ -145,7 +144,7 @@ func ValidatePostTitle(title string) (bool, string) {
 func ValidatePostBody(body string) (bool, string) {
 	body = strings.TrimSpace(body)
 
-	if len(body) < 20 || len(body) > 250 {
+	if len(body) < 20 || len(body) > 2000 {
 		return false, "Post content should be at least 20 and at most 2000 characters"
 	}
 	return true, "success"
@@ -165,14 +164,43 @@ func ValidateCategoryLen(categoriesInput []string, categories []*schemas.Categor
 		return false, "Post should has at least one category"
 	}
 
-	for _, category := range categories {
-		for _, categoryInput := range categoriesInput {
-			if category.Name != categoryInput {
-				return false, "Unknown post category"
+	if !isUniqueCategory(categoriesInput) {
+		return false, "Duplicate post category"
+	}
+
+	for _, categoryInput := range categoriesInput {
+		var present bool
+		for _, category := range categories {
+			if categoryInput == category.Name {
+				present = true
 			}
 		}
+
+		if !present {
+			return false, "Unknown post category"
+		}
 	}
+
+	// for _, category := range categories {
+	// 	for _, categoryInput := range categoriesInput {
+	// 		if category.Name != categoryInput {
+	// 			return false, "Unknown post category"
+	// 		}
+	// 	}
+	// }
 	return true, "success"
+}
+
+func isUniqueCategory(categoriesInput []string) bool {
+	encountered := make(map[string]bool)
+
+	for _, v := range categoriesInput {
+		if encountered[v] {
+			return false
+		}
+		encountered[v] = true
+	}
+	return true
 }
 
 func ValidateUpdatePostInput(post schemas.UpdatePost) error {
