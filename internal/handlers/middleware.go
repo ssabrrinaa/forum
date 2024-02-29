@@ -2,15 +2,14 @@ package handler
 
 import (
 	"context"
-	"net/http"
-
 	"forum/internal/exceptions"
 	"forum/pkg/cust_encoders"
+	"net/http"
 )
 
 func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var ctx = r.Context()
+		ctx := r.Context()
 		session, sessionErr := h.AuthHandler.AuthService.GetSession()
 		cookie, cookieErr := r.Cookie("session")
 		if _, exclude := h.ExcludeSessionHandlersPath[r.URL.Path]; !exclude {
@@ -35,9 +34,16 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 			}
 
 			if session.Token != cookie.Value {
-				dataErr := exceptions.NewAuthenticationError("Token is invalid")
-				params := cust_encoders.EncodeParams(dataErr)
-				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+				expiredCookie := &http.Cookie{
+					Name:     "session",
+					Value:    "",
+					Path:     "/",
+					HttpOnly: true,
+					MaxAge:   -1,
+				}
+				http.SetCookie(w, expiredCookie)
+
+				http.Redirect(w, r, "/post/", http.StatusSeeOther)
 				return
 			}
 
@@ -88,32 +94,42 @@ func (h *Handler) ErrorMiddleware(next http.Handler) http.Handler {
 					http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 				}
 				var (
-					customErr error
-					ctx       context.Context
+					customErr  error
+					ctx        context.Context
+					httpStatus int
 				)
 				switch dataErr.(type) {
 				case exceptions.AuthenticationError:
 					customErr = dataErr
+					httpStatus = dataErr.(exceptions.AuthenticationError).StatusCode
 				case exceptions.ForbiddenError:
 					customErr = dataErr
+					httpStatus = dataErr.(exceptions.ForbiddenError).StatusCode
 				case exceptions.ResourceNotFoundError:
 					customErr = dataErr
+					httpStatus = dataErr.(exceptions.ResourceNotFoundError).StatusCode
 				case exceptions.StatusMethodNotAllowed:
 					customErr = dataErr
+					httpStatus = dataErr.(exceptions.StatusMethodNotAllowed).StatusCode
 				case exceptions.StatusConflictError:
 					customErr = dataErr
+					httpStatus = dataErr.(exceptions.StatusConflictError).StatusCode
 				case exceptions.ValidationError:
 					customErr = dataErr
+					httpStatus = dataErr.(exceptions.ValidationError).StatusCode
 				case exceptions.InternalServerError:
 					customErr = dataErr
+					httpStatus = dataErr.(exceptions.InternalServerError).StatusCode
 				case exceptions.BadRequestError:
 					customErr = dataErr
+					httpStatus = dataErr.(exceptions.BadRequestError).StatusCode
 				default:
 					http.Redirect(w, r, "/signin", http.StatusSeeOther)
 					return
 				}
 
 				ctx = context.WithValue(r.Context(), "error", customErr)
+				ctx = context.WithValue(ctx, "httpStatus", httpStatus)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			}
 		} else {

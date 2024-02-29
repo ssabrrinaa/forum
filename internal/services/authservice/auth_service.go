@@ -58,12 +58,12 @@ func (as *AuthService) CreateUser(user schemas.CreateUser) error {
 func (as *AuthService) CreateSession(user schemas.AuthUser) (models.Session, error) {
 	session := models.Session{}
 	if err := validator.ValidateSignInInput(user); err != nil {
-		return session, exceptions.NewValidationError("")
+		return session, exceptions.NewValidationError("Email invalid")
 	}
 
 	userDB, err := as.AuthRepo.GetUserByEmail(user.Email)
 	if err != nil {
-		return session, exceptions.NewStatusConflicError("User is already present")
+		return session, exceptions.NewStatusConflicError("User not found")
 	}
 
 	err = as.CheckUserPassword(userDB.HashedPassword, user.Password)
