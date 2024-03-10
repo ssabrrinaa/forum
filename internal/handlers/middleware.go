@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"forum/internal/exceptions"
 	"forum/pkg/cust_encoders"
 	"net/http"
@@ -12,24 +13,22 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 		ctx := r.Context()
 		session, sessionErr := h.AuthHandler.AuthService.GetSession()
 		cookie, cookieErr := r.Cookie("session")
+		fmt.Println(r.URL.Path)
 		if _, exclude := h.ExcludeSessionHandlersPath[r.URL.Path]; !exclude {
+			if _, ok := h.ValidRoutes[r.URL.Path]; !ok {
+				dataErr := exceptions.NewResourceNotFoundError("Page is not found")
+				params := cust_encoders.EncodeParams(dataErr)
+				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+				return
+			}
+			fmt.Println("Not excluded url paths")
 			if sessionErr != nil {
 				http.Redirect(w, r, "/signin", http.StatusSeeOther)
 				return
 			}
 
 			if cookieErr != nil {
-				newCookie := &http.Cookie{
-					Name:     "session",
-					Value:    session.Token,
-					Path:     "/",
-					Expires:  session.ExpireTime,
-					HttpOnly: true,
-					MaxAge:   7200,
-				}
-				http.SetCookie(w, newCookie)
-				ctx := context.WithValue(r.Context(), "session", session)
-				next.ServeHTTP(w, r.WithContext(ctx))
+				http.Redirect(w, r, "/signin", http.StatusSeeOther)
 				return
 			}
 
@@ -41,41 +40,98 @@ func (h *Handler) SessionMiddleware(next http.Handler) http.Handler {
 					HttpOnly: true,
 					MaxAge:   -1,
 				}
+
+				h.AuthHandler.AuthService.DeleteSession()
 				http.SetCookie(w, expiredCookie)
 
-				http.Redirect(w, r, "/post/", http.StatusSeeOther)
+				dataErr := exceptions.NewAuthenticationError("Session is expired or invalid")
+				params := cust_encoders.EncodeParams(dataErr)
+				http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
 				return
 			}
 
 			ctx := context.WithValue(r.Context(), "session", session)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		} else {
-			if sessionErr == nil {
+			fmt.Println("SESSION IS EXCLUDED URL PATHS")
+			if sessionErr == nil { // если сессия есть
+				fmt.Println("SESSION IS PRESENT")
 				if r.URL.Path == "/signin" {
+					fmt.Println("URL PATH IS SIGNIN")
 					if cookieErr != nil {
-						h.AuthHandler.AuthService.DeleteSession()
-					} else if session.Token == cookie.Value {
-						http.Redirect(w, r, "/post/", http.StatusSeeOther)
+						fmt.Println("COOKIE IS NOT PRESENT")
+						if r.Method == http.MethodPost {
+							fmt.Println("METHOD IS POST")
+							h.AuthHandler.AuthService.DeleteSession()
+						}
+						next.ServeHTTP(w, r)
 						return
 					} else {
-						err := h.AuthHandler.AuthService.DeleteSession()
-						if err != nil {
-							params := cust_encoders.EncodeParams(err)
-							if err != nil {
-								http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
-								return
+						fmt.Println("COOKIE IS PRESENT")
+						if session.Token == cookie.Value {
+							fmt.Println("SESSION VALUE IS EQUAL TO COOKIE")
+							http.Redirect(w, r, "/post/", http.StatusSeeOther)
+							return
+							//ctx := context.WithValue(r.Context(), "session", session)
+							//next.ServeHTTP(w, r.WithContext(ctx))
+							//return
+						} else {
+							fmt.Println("SESSION VALUE IS NOT EQUAL TO COOKIE")
+							expiredCookie := &http.Cookie{
+								Name:     "session",
+								Value:    "",
+								Path:     "/",
+								HttpOnly: true,
+								MaxAge:   -1,
 							}
+							http.SetCookie(w, expiredCookie)
+							dataErr := exceptions.NewAuthenticationError("User session or cookie is expired")
+							params := cust_encoders.EncodeParams(dataErr)
+							http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+							return
 						}
 					}
-					ctx = r.Context()
 				} else {
-					ctx = context.WithValue(r.Context(), "session", session)
+					fmt.Println("URL IS EITHER POST OR POST/GET")
+					if cookieErr != nil {
+						//http.Redirect(w, r, "/signin", http.StatusSeeOther)
+						//return
+						next.ServeHTTP(w, r)
+						return
+					} else {
+						fmt.Println("")
+						if session.Token == cookie.Value {
+							ctx = context.WithValue(r.Context(), "session", session)
+							next.ServeHTTP(w, r.WithContext(ctx))
+							return
+						} else {
+							expiredCookie := &http.Cookie{
+								Name:     "session",
+								Value:    "",
+								Path:     "/",
+								HttpOnly: true,
+								MaxAge:   -1,
+							}
+							http.SetCookie(w, expiredCookie)
+
+							dataErr := exceptions.NewAuthenticationError("User cookie is expired or incorrect")
+							params := cust_encoders.EncodeParams(dataErr)
+							http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+							return
+						}
+					}
 				}
 			} else {
-				ctx = r.Context()
+				expiredCookie := &http.Cookie{
+					Name:     "session",
+					Value:    "",
+					Path:     "/",
+					HttpOnly: true,
+					MaxAge:   -1,
+				}
+				http.SetCookie(w, expiredCookie)
+				next.ServeHTTP(w, r)
 			}
-
-			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 	})
 }
