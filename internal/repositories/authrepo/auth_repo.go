@@ -22,6 +22,7 @@ type AuthRepoI interface {
 	CreateSession(session models.Session) error
 
 	GetUserByEmail(email string) (models.User, error)
+	GetUserByUsername(username string) (models.User, error)
 	GetUserByToken(token string) (models.User, error)
 	GetSession() (models.Session, error)
 	GetUserByUserID(userID uuid.UUID) (models.User, error)
@@ -59,6 +60,20 @@ func (ar *AuthRepo) GetUserByEmail(email string) (models.User, error) {
 		WHERE email = ?;
 	`
 	if err := ar.db.QueryRow(stmt, email).Scan(&user.ID, &user.Username, &user.Email, &user.HashedPassword); err != nil {
+		return models.User{}, err
+	}
+
+	return user, nil
+}
+
+func (ar *AuthRepo) GetUserByUsername(username string) (models.User, error) {
+	var user models.User
+	stmt := `
+		SELECT user_id, username, email, password FROM users
+		WHERE username = ?
+	`
+
+	if err := ar.db.QueryRow(stmt, username).Scan(&user.ID, &user.Username, &user.Email, &user.HashedPassword); err != nil {
 		return models.User{}, err
 	}
 

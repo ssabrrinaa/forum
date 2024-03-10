@@ -40,7 +40,11 @@ func (as *AuthService) CreateUser(user schemas.CreateUser) error {
 	}
 	userFromDb, _ := as.AuthRepo.GetUserByEmail(user.Email)
 	if userFromDb.Email == user.Email {
-		return exceptions.NewStatusConflicError("User is already present")
+		return exceptions.NewStatusConflicError("User with this email already exists")
+	}
+	userFromDB2, _ := as.AuthRepo.GetUserByUsername(user.Username)
+	if userFromDB2.Username == user.Username {
+		return exceptions.NewStatusConflicError("User with this username already exists")
 	}
 	userModel := models.User{
 		ID:             uuid.Must(uuid.NewV4()),
