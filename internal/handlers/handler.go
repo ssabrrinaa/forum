@@ -29,6 +29,7 @@ func NewHandler(service *service.Service) *Handler {
 			"/post/myposts":   {},
 			"/comment/create": {},
 			"/comment/update": {},
+			"/logout":         {},
 		},
 	}
 }
