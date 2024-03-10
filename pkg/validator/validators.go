@@ -160,7 +160,7 @@ func ValidatePostComment(body string) (bool, string) {
 }
 
 func ValidateCategoryLen(categoriesInput []string, categories []*schemas.Category) (bool, string) {
-	if len(categories) < 1 {
+	if len(categoriesInput) < 1 {
 		return false, "Post should has at least one category"
 	}
 
