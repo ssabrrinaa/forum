@@ -342,6 +342,13 @@ func (ah *PostHandler) PostGetAll(w http.ResponseWriter, r *http.Request) {
 	category := r.URL.Query().Get("category")
 	likedFilter := r.URL.Query().Get("liked")
 
+	if likedFilter != "" && likedFilter != "1" {
+		dataErr := exceptions.NewBadRequestError("Bad Parameter Request")
+		params := cust_encoders.EncodeParams(dataErr)
+		http.Redirect(w, r, "/?"+params, http.StatusSeeOther)
+		return
+	}
+
 	posts, err := ah.PostService.GetPostsAll(category)
 	if err != nil {
 		params := cust_encoders.EncodeParams(err)
